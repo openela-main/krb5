@@ -1,0 +1,45 @@
+From ff9c99b689855a646c371379d30a668dfd7a87a7 Mon Sep 17 00:00:00 2001
+From: Julien Rische <jrische@redhat.com>
+Date: Wed, 1 Feb 2023 15:57:26 +0100
+Subject: [PATCH] Fix possible double-free during KDB creation
+
+In krb5_dbe_def_encrypt_key_data(), when we free
+key_data->key_data_contents[0], reset it to null so the caller doesn't
+free it as well.
+
+Since commit a06945b4ec267e8b80e5e8c95edd89930ff12103 this bug
+manifests as a double-free during KDB creation if master key
+encryption fails.
+
+[ghudson@mit.edu: edited commit message]
+
+ticket: 9086 (new)
+tags: pullup
+target_version: 1.20-next
+---
+ src/lib/kdb/encrypt_key.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/src/lib/kdb/encrypt_key.c b/src/lib/kdb/encrypt_key.c
+index dc612c810e..91debea533 100644
+--- a/src/lib/kdb/encrypt_key.c
++++ b/src/lib/kdb/encrypt_key.c
+@@ -109,6 +109,7 @@ krb5_dbe_def_encrypt_key_data( krb5_context             context,
+     if ((retval = krb5_c_encrypt(context, mkey, /* XXX */ 0, 0,
+                                  &plain, &cipher))) {
+         free(key_data->key_data_contents[0]);
++        key_data->key_data_contents[0] = NULL;
+         return retval;
+     }
+ 
+@@ -121,6 +122,7 @@ krb5_dbe_def_encrypt_key_data( krb5_context             context,
+                 key_data->key_data_contents[1] = malloc(keysalt->data.length);
+                 if (key_data->key_data_contents[1] == NULL) {
+                     free(key_data->key_data_contents[0]);
++                    key_data->key_data_contents[0] = NULL;
+                     return ENOMEM;
+                 }
+                 memcpy(key_data->key_data_contents[1], keysalt->data.data,
+-- 
+2.39.1
+

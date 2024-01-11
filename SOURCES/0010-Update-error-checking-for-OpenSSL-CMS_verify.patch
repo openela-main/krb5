@@ -1,0 +1,48 @@
+From 75f71ace74449a6e5154314229bfa61960cd326c Mon Sep 17 00:00:00 2001
+From: Julien Rische <jrische@redhat.com>
+Date: Thu, 28 Jul 2022 15:20:12 +0200
+Subject: [PATCH] Update error checking for OpenSSL CMS_verify
+
+The code for CMS data verification was initially written for OpenSSL's
+PKCS7_verify() function.  It now uses CMS_verify(), but error handling
+is still done using PKCS7_verify() error identifiers.  Update the
+recognized error codes so that the KDC generates
+KDC_ERR_DIGEST_IN_SIGNED_DATA_NOT_ACCEPTED errors when appropriate.
+Use ERR_peek_last_error() to observe the error generated closest to
+the API surface.
+
+[ghudson@mit.edu: edited commit message]
+
+ticket: 9069 (new)
+tags: pullup
+target_version: 1.20-next
+---
+ src/plugins/preauth/pkinit/pkinit_crypto_openssl.c | 9 ++++++---
+ 1 file changed, 6 insertions(+), 3 deletions(-)
+
+diff --git a/src/plugins/preauth/pkinit/pkinit_crypto_openssl.c b/src/plugins/preauth/pkinit/pkinit_crypto_openssl.c
+index 1c2aa02827..16edf15cb2 100644
+--- a/src/plugins/preauth/pkinit/pkinit_crypto_openssl.c
++++ b/src/plugins/preauth/pkinit/pkinit_crypto_openssl.c
+@@ -2102,12 +2102,15 @@ cms_signeddata_verify(krb5_context context,
+             goto cleanup;
+         out = BIO_new(BIO_s_mem());
+         if (CMS_verify(cms, NULL, store, NULL, out, flags) == 0) {
+-            unsigned long err = ERR_peek_error();
++            unsigned long err = ERR_peek_last_error();
+             switch(ERR_GET_REASON(err)) {
+-            case PKCS7_R_DIGEST_FAILURE:
++            case RSA_R_DIGEST_NOT_ALLOWED:
++            case CMS_R_UNKNOWN_DIGEST_ALGORITHM:
++            case CMS_R_NO_MATCHING_DIGEST:
++            case CMS_R_NO_MATCHING_SIGNATURE:
+                 retval = KRB5KDC_ERR_DIGEST_IN_SIGNED_DATA_NOT_ACCEPTED;
+                 break;
+-            case PKCS7_R_SIGNATURE_FAILURE:
++            case CMS_R_VERIFICATION_FAILURE:
+             default:
+                 retval = KRB5KDC_ERR_INVALID_SIG;
+             }
+-- 
+2.38.1
+

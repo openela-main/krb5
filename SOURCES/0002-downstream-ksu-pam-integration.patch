@@ -1,4 +1,4 @@
-From 37d69135d0be7f46732c401cdbb3abc075bf4117 Mon Sep 17 00:00:00 2001
+From d7be72b066a9b07f0426780c7931614eddf9dd9e Mon Sep 17 00:00:00 2001
 From: Robbie Harwood <rharwood@redhat.com>
 Date: Tue, 23 Aug 2016 16:29:58 -0400
 Subject: [PATCH] [downstream] ksu pam integration
@@ -30,7 +30,7 @@ Last-updated: krb5-1.18-beta1
  create mode 100644 src/clients/ksu/pam.h
 
 diff --git a/src/aclocal.m4 b/src/aclocal.m4
-index 9920476f91..bf9da35bbc 100644
+index 3d66a876b3..ce3c5a9bac 100644
 --- a/src/aclocal.m4
 +++ b/src/aclocal.m4
 @@ -1458,3 +1458,72 @@ if test "$with_ldap" = yes; then
@@ -760,10 +760,10 @@ index 0000000000..0ab76569cb
 +void appl_pam_cleanup(void);
 +#endif
 diff --git a/src/configure.ac b/src/configure.ac
-index f03028b5fd..aa970b0447 100644
+index 77be7a2025..587221936e 100644
 --- a/src/configure.ac
 +++ b/src/configure.ac
-@@ -1400,6 +1400,8 @@ AC_SUBST([VERTO_VERSION])
+@@ -1399,6 +1399,8 @@ AC_SUBST([VERTO_VERSION])
  
  AC_PATH_PROG(GROFF, groff)
  
@@ -773,5 +773,5 @@ index f03028b5fd..aa970b0447 100644
  if test "${localedir+set}" != set; then
      localedir='$(datadir)/locale'
 -- 
-2.38.1
+2.41.0
 

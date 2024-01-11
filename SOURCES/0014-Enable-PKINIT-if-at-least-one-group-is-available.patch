@@ -1,4 +1,4 @@
-From d1de97ec288a3b822ec8899f39395414617ac349 Mon Sep 17 00:00:00 2001
+From 906d3441b846ed09882490b6128db6fedf39e63b Mon Sep 17 00:00:00 2001
 From: Greg Hudson <ghudson@mit.edu>
 Date: Tue, 30 May 2023 01:21:48 -0400
 Subject: [PATCH] Enable PKINIT if at least one group is available
@@ -24,7 +24,7 @@ ticket: 9096 (new)
  5 files changed, 51 insertions(+), 35 deletions(-)
 
 diff --git a/src/plugins/preauth/pkinit/pkinit_clnt.c b/src/plugins/preauth/pkinit/pkinit_clnt.c
-index 8c4d81bbc1..a9d9b98250 100644
+index 725d5bc438..ea9ba454df 100644
 --- a/src/plugins/preauth/pkinit/pkinit_clnt.c
 +++ b/src/plugins/preauth/pkinit/pkinit_clnt.c
 @@ -1378,7 +1378,7 @@ pkinit_client_plugin_init(krb5_context context,
@@ -37,7 +37,7 @@ index 8c4d81bbc1..a9d9b98250 100644
          goto errout;
  
 diff --git a/src/plugins/preauth/pkinit/pkinit_crypto.h b/src/plugins/preauth/pkinit/pkinit_crypto.h
-index 64300da856..a87bae6df7 100644
+index 9fa315d7a0..8bdbea8e95 100644
 --- a/src/plugins/preauth/pkinit/pkinit_crypto.h
 +++ b/src/plugins/preauth/pkinit/pkinit_crypto.h
 @@ -103,7 +103,8 @@ typedef struct _pkinit_cert_matching_data {
@@ -51,7 +51,7 @@ index 64300da856..a87bae6df7 100644
  
  krb5_error_code pkinit_init_req_crypto(pkinit_req_crypto_context *);
 diff --git a/src/plugins/preauth/pkinit/pkinit_crypto_openssl.c b/src/plugins/preauth/pkinit/pkinit_crypto_openssl.c
-index ca105d2421..2abc9dbbe1 100644
+index 263ef7845e..d646073d55 100644
 --- a/src/plugins/preauth/pkinit/pkinit_crypto_openssl.c
 +++ b/src/plugins/preauth/pkinit/pkinit_crypto_openssl.c
 @@ -47,7 +47,8 @@
@@ -64,7 +64,7 @@ index ca105d2421..2abc9dbbe1 100644
  static void pkinit_fini_dh_params(pkinit_plg_crypto_context );
  
  static krb5_error_code pkinit_init_certs(pkinit_identity_crypto_context ctx);
-@@ -988,7 +989,8 @@ oerr_cert(krb5_context context, krb5_error_code code, X509_STORE_CTX *certctx,
+@@ -951,7 +952,8 @@ oerr_cert(krb5_context context, krb5_error_code code, X509_STORE_CTX *certctx,
  }
  
  krb5_error_code
@@ -74,7 +74,7 @@ index ca105d2421..2abc9dbbe1 100644
  {
      krb5_error_code retval = ENOMEM;
      pkinit_plg_crypto_context ctx = NULL;
-@@ -1006,7 +1008,7 @@ pkinit_init_plg_crypto(pkinit_plg_crypto_context *cryptoctx)
+@@ -969,7 +971,7 @@ pkinit_init_plg_crypto(pkinit_plg_crypto_context *cryptoctx)
      if (retval)
          goto out;
  
@@ -83,7 +83,7 @@ index ca105d2421..2abc9dbbe1 100644
      if (retval)
          goto out;
  
-@@ -1315,30 +1317,36 @@ pkinit_fini_pkinit_oids(pkinit_plg_crypto_context ctx)
+@@ -1278,30 +1280,36 @@ pkinit_fini_pkinit_oids(pkinit_plg_crypto_context ctx)
      ASN1_OBJECT_free(ctx->id_kp_serverAuth);
  }
  
@@ -138,7 +138,7 @@ index ca105d2421..2abc9dbbe1 100644
  }
  
  static void
-@@ -2961,11 +2969,11 @@ client_create_dh(krb5_context context,
+@@ -2910,11 +2918,11 @@ client_create_dh(krb5_context context,
  
      if (cryptoctx->received_params != NULL)
          params = cryptoctx->received_params;
@@ -153,7 +153,7 @@ index ca105d2421..2abc9dbbe1 100644
          params = plg_cryptoctx->dh_4096;
      else
          goto cleanup;
-@@ -3261,19 +3269,23 @@ pkinit_create_td_dh_parameters(krb5_context context,
+@@ -3210,19 +3218,23 @@ pkinit_create_td_dh_parameters(krb5_context context,
      krb5_algorithm_identifier alg_4096 = { dh_oid, oakley_4096 };
      krb5_algorithm_identifier *alglist[4];
  
@@ -186,7 +186,7 @@ index ca105d2421..2abc9dbbe1 100644
      if (ret)
          goto cleanup;
 diff --git a/src/plugins/preauth/pkinit/pkinit_srv.c b/src/plugins/preauth/pkinit/pkinit_srv.c
-index 865c543c44..705e1f12ed 100644
+index 1b3bf6d4d0..768a4e559f 100644
 --- a/src/plugins/preauth/pkinit/pkinit_srv.c
 +++ b/src/plugins/preauth/pkinit/pkinit_srv.c
 @@ -1222,7 +1222,7 @@ pkinit_server_plugin_init_realm(krb5_context context, const char *realmname,
@@ -213,5 +213,5 @@ index 259e95c6c2..5ee39c085c 100644
      TRACE(c, "PKINIT OpenSSL error: {str}", msg)
  
 -- 
-2.39.2
+2.41.0
 

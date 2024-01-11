@@ -1,4 +1,4 @@
-From 9aa12e932f08651785519890896647069e7a30b1 Mon Sep 17 00:00:00 2001
+From aa0556348373d6aca0a1bda96fe7a47888051d33 Mon Sep 17 00:00:00 2001
 From: Julien Rische <jrische@redhat.com>
 Date: Wed, 7 Dec 2022 13:22:42 +0100
 Subject: [PATCH] [downstream] Make tests compatible with
@@ -37,5 +37,5 @@ index 87bac17929..26bc95a8dc 100644
          fail('URI answers do not match')
      j += 1
 -- 
-2.38.1
+2.41.0
 

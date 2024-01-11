@@ -1,4 +1,4 @@
-From c6b58ed180ed91b579d322ff5004f68750f1eb4f Mon Sep 17 00:00:00 2001
+From 021f1f1bf690694945a3ab0a5221797a7bcd6a99 Mon Sep 17 00:00:00 2001
 From: Robbie Harwood <rharwood@redhat.com>
 Date: Tue, 23 Aug 2016 16:30:53 -0400
 Subject: [PATCH] [downstream] SELinux integration
@@ -69,7 +69,7 @@ Last-updated: krb5-1.20.1
  create mode 100644 src/util/support/selinux.c
 
 diff --git a/src/aclocal.m4 b/src/aclocal.m4
-index bf9da35bbc..01283f482e 100644
+index ce3c5a9bac..3331970930 100644
 --- a/src/aclocal.m4
 +++ b/src/aclocal.m4
 @@ -85,6 +85,7 @@ AC_SUBST_FILE(libnodeps_frag)
@@ -133,10 +133,10 @@ index bf9da35bbc..01283f482e 100644
 +AC_SUBST(SELINUX_LIBS)
 +])dnl
 diff --git a/src/build-tools/krb5-config.in b/src/build-tools/krb5-config.in
-index dead0dddce..fef3e054fc 100755
+index 8e6eb86601..7677f37359 100755
 --- a/src/build-tools/krb5-config.in
 +++ b/src/build-tools/krb5-config.in
-@@ -41,6 +41,7 @@ DL_LIB='@DL_LIB@'
+@@ -40,6 +40,7 @@ DL_LIB='@DL_LIB@'
  DEFCCNAME='@DEFCCNAME@'
  DEFKTNAME='@DEFKTNAME@'
  DEFCKTNAME='@DEFCKTNAME@'
@@ -144,7 +144,7 @@ index dead0dddce..fef3e054fc 100755
  
  LIBS='@LIBS@'
  GEN_LIB=@GEN_LIB@
-@@ -254,7 +255,7 @@ if test -n "$do_libs"; then
+@@ -253,7 +254,7 @@ if test -n "$do_libs"; then
      fi
  
      # If we ever support a flag to generate output suitable for static
@@ -175,10 +175,10 @@ index a0c60c70b3..7eaa2f351c 100644
  GSS_LIBS	= $(GSS_KRB5_LIB)
  # needs fixing if ever used on macOS!
 diff --git a/src/configure.ac b/src/configure.ac
-index aa970b0447..40545f2bfc 100644
+index 587221936e..69be9030f8 100644
 --- a/src/configure.ac
 +++ b/src/configure.ac
-@@ -1402,6 +1402,8 @@ AC_PATH_PROG(GROFF, groff)
+@@ -1401,6 +1401,8 @@ AC_PATH_PROG(GROFF, groff)
  
  KRB5_WITH_PAM
  
@@ -188,7 +188,7 @@ index aa970b0447..40545f2bfc 100644
  if test "${localedir+set}" != set; then
      localedir='$(datadir)/locale'
 diff --git a/src/include/k5-int.h b/src/include/k5-int.h
-index 44dc1eeb3f..c3aecba7d4 100644
+index 1d1c8293f4..768110e5ef 100644
 --- a/src/include/k5-int.h
 +++ b/src/include/k5-int.h
 @@ -128,6 +128,7 @@ typedef unsigned char   u_char;
@@ -238,7 +238,7 @@ index 0000000000..dfaaa847cb
 +#endif
 +#endif
 diff --git a/src/include/krb5/krb5.hin b/src/include/krb5/krb5.hin
-index c0194c3c94..7e1dea2cbf 100644
+index 9c76780181..dd6430ece8 100644
 --- a/src/include/krb5/krb5.hin
 +++ b/src/include/krb5/krb5.hin
 @@ -87,6 +87,12 @@
@@ -290,10 +290,10 @@ index a89b5144f6..4d6cc0bdf9 100644
          com_err(progname, errno, _("while creating 'ok' file, '%s'"), file_ok);
          goto cleanup;
 diff --git a/src/kdc/main.c b/src/kdc/main.c
-index 38b9299066..085afc9220 100644
+index bfdfef5c48..b43fe9a082 100644
 --- a/src/kdc/main.c
 +++ b/src/kdc/main.c
-@@ -848,7 +848,7 @@ write_pid_file(const char *path)
+@@ -844,7 +844,7 @@ write_pid_file(const char *path)
      FILE *file;
      unsigned long pid;
  
@@ -303,7 +303,7 @@ index 38b9299066..085afc9220 100644
          return errno;
      pid = (unsigned long) getpid();
 diff --git a/src/kprop/kpropd.c b/src/kprop/kpropd.c
-index f2341d720f..ffdac9f397 100644
+index aa3c81ea30..cb9785aaeb 100644
 --- a/src/kprop/kpropd.c
 +++ b/src/kprop/kpropd.c
 @@ -488,6 +488,9 @@ doit(int fd)
@@ -333,10 +333,10 @@ index f2341d720f..ffdac9f397 100644
                              KRB5_LOCKMODE_EXCLUSIVE | KRB5_LOCKMODE_DONTBLOCK);
      if (retval) {
 diff --git a/src/lib/kadm5/logger.c b/src/lib/kadm5/logger.c
-index c6885edf2a..9aec3c05e8 100644
+index e14da53790..b879a4049b 100644
 --- a/src/lib/kadm5/logger.c
 +++ b/src/lib/kadm5/logger.c
-@@ -309,7 +309,7 @@ krb5_klog_init(krb5_context kcontext, char *ename, char *whoami, krb5_boolean do
+@@ -310,7 +310,7 @@ krb5_klog_init(krb5_context kcontext, char *ename, char *whoami, krb5_boolean do
                       */
                      append = (cp[4] == ':') ? O_APPEND : 0;
                      if (append || cp[4] == '=') {
@@ -345,7 +345,7 @@ index c6885edf2a..9aec3c05e8 100644
                                    S_IRUSR | S_IWUSR | S_IRGRP);
                          if (fd != -1)
                              f = fdopen(fd, append ? "a" : "w");
-@@ -776,7 +776,7 @@ krb5_klog_reopen(krb5_context kcontext)
+@@ -777,7 +777,7 @@ krb5_klog_reopen(krb5_context kcontext)
               * In case the old logfile did not get moved out of the
               * way, open for append to prevent squashing the old logs.
               */
@@ -439,10 +439,10 @@ index e510211fc5..f3ea28c8ec 100644
                  goto report_errno;
              writevno = 1;
 diff --git a/src/lib/krb5/os/trace.c b/src/lib/krb5/os/trace.c
-index 3369fc4ba6..95f82cda03 100644
+index 4cbbbb270a..c4058ddc96 100644
 --- a/src/lib/krb5/os/trace.c
 +++ b/src/lib/krb5/os/trace.c
-@@ -459,7 +459,7 @@ krb5_set_trace_filename(krb5_context context, const char *filename)
+@@ -460,7 +460,7 @@ krb5_set_trace_filename(krb5_context context, const char *filename)
      fd = malloc(sizeof(*fd));
      if (fd == NULL)
          return ENOMEM;
@@ -452,7 +452,7 @@ index 3369fc4ba6..95f82cda03 100644
          free(fd);
          return errno;
 diff --git a/src/plugins/kdb/db2/adb_openclose.c b/src/plugins/kdb/db2/adb_openclose.c
-index 7db30a33b0..2b9d01921d 100644
+index 9a506e9d44..f92ab47143 100644
 --- a/src/plugins/kdb/db2/adb_openclose.c
 +++ b/src/plugins/kdb/db2/adb_openclose.c
 @@ -152,7 +152,7 @@ osa_adb_init_db(osa_adb_db_t *dbp, char *filename, char *lockfilename,
@@ -1034,5 +1034,5 @@ index 0000000000..807d039da3
 +
 +#endif /* USE_SELINUX */
 -- 
-2.38.1
+2.41.0
 

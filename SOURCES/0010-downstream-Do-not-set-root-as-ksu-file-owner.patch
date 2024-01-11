@@ -1,4 +1,4 @@
-From fb13766f8fbd78acfcf7a150332a4e5474e4f52a Mon Sep 17 00:00:00 2001
+From f9429a9944b056376a1ff06e84dbf7e94f0d3108 Mon Sep 17 00:00:00 2001
 From: Julien Rische <jrische@redhat.com>
 Date: Mon, 9 Jan 2023 22:39:52 +0100
 Subject: [PATCH] [downstream] Do not set root as ksu file owner
@@ -27,5 +27,5 @@ index 7eaa2f351c..e9ae71471e 100644
  ## ${prefix}.
  prefix=@prefix@
 -- 
-2.38.1
+2.41.0
 

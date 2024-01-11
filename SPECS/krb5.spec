@@ -34,7 +34,7 @@
 #
 # baserelease is what we have standardized across Fedora and what
 # rpmdev-bumpspec knows how to handle.
-%global baserelease 9
+%global baserelease 1
 
 # This should be e.g. beta1 or %%nil
 %global pre_release %nil
@@ -46,7 +46,7 @@
 %endif
 
 %global krb5_version_major 1
-%global krb5_version_minor 20
+%global krb5_version_minor 21
 # For a release without a patch number set to %%nil
 %global krb5_version_patch 1
 
@@ -83,27 +83,21 @@ Source12: krb5kdc.logrotate
 Source13: kadmind.logrotate
 Source14: krb5-krb5kdc.conf
 
-Patch01: 0001-downstream-ksu-pam-integration.patch
-Patch02: 0002-downstream-SELinux-integration.patch
-Patch03: 0003-downstream-fix-debuginfo-with-y.tab.c.patch
-Patch04: 0004-downstream-Remove-3des-support.patch
-Patch05: 0005-downstream-FIPS-with-PRNG-and-RADIUS-and-MD4.patch
-Patch06: 0006-downstream-Allow-krad-UDP-TCP-localhost-connection-w.patch
-Patch07: 0007-Add-configure-variable-for-default-PKCS-11-module.patch
-Patch08: 0008-Set-reasonable-supportedCMSTypes-in-PKINIT.patch
-Patch09: 0009-Simplify-plugin-loading-code.patch
-Patch10: 0010-Update-error-checking-for-OpenSSL-CMS_verify.patch
-Patch11: 0011-downstream-Catch-SHA-1-digest-disallowed-error-for-P.patch
-Patch12: 0012-Add-and-use-ts_interval-helper.patch
-Patch13: 0013-downstream-Make-tests-compatible-with-sssd_krb5_loca.patch
-Patch14: 0014-downstream-Do-not-set-root-as-ksu-file-owner.patch
-Patch15: 0015-downstream-Allow-KRB5KDF-MD5-and-MD4-in-FIPS-mode.patch
-Patch16: 0016-Add-PAC-full-checksums.patch
-Patch17: 0017-Fix-possible-double-free-during-KDB-creation.patch
-Patch18: 0018-Fix-meridian-type-in-kadmin-datetime-parser.patch
-Patch19: 0019-downstream-Allow-to-set-PAC-ticket-signature-as-opti.patch
-Patch20: 0020-downstream-Make-PKINIT-CMS-SHA-1-signature-verificat.patch
-Patch21: 0021-Enable-PKINIT-if-at-least-one-group-is-available.patch
+Patch0001: 0001-downstream-Revert-Don-t-issue-session-keys-with-depr.patch
+Patch0002: 0002-downstream-ksu-pam-integration.patch
+Patch0003: 0003-downstream-SELinux-integration.patch
+Patch0004: 0004-downstream-fix-debuginfo-with-y.tab.c.patch
+Patch0005: 0005-downstream-Remove-3des-support.patch
+Patch0006: 0006-downstream-FIPS-with-PRNG-and-RADIUS-and-MD4.patch
+Patch0007: 0007-downstream-Allow-krad-UDP-TCP-localhost-connection-w.patch
+Patch0008: 0008-downstream-Make-tests-compatible-with-sssd_krb5_loca.patch
+Patch0009: 0009-downstream-Include-missing-OpenSSL-FIPS-header.patch
+Patch0010: 0010-downstream-Do-not-set-root-as-ksu-file-owner.patch
+Patch0011: 0011-downstream-Allow-KRB5KDF-MD5-and-MD4-in-FIPS-mode.patch
+Patch0012: 0012-downstream-Allow-to-set-PAC-ticket-signature-as-opti.patch
+Patch0013: 0013-downstream-Make-PKINIT-CMS-SHA-1-signature-verificat.patch
+Patch0014: 0014-Enable-PKINIT-if-at-least-one-group-is-available.patch
+Patch0015: 0015-Fix-double-free-in-KDC-TGS-processing.patch
 
 License: MIT
 URL: https://web.mit.edu/kerberos/www/
@@ -135,7 +129,7 @@ BuildRequires: python3-pyrad
 %endif
 
 # Need KDFs.  This is the "real" version
-BuildRequires: openssl-devel >= 1:3.0.7-15.el9_2.1
+BuildRequires: openssl-devel >= 1:3.0.0
 
 %description
 Kerberos V5 is a trusted-third-party network authentication system,
@@ -161,7 +155,7 @@ to install this package.
 
 %package libs
 Summary: The non-admin shared libraries used by Kerberos 5
-Requires: openssl-libs >= 1:3.0.7-15.el9_2.1
+Requires: openssl-libs >= 1:3.0.0
 Requires: coreutils, gawk, grep, sed
 Requires: keyutils-libs >= 1.5.8
 Requires: /etc/crypto-policies/back-ends/krb5.config
@@ -668,78 +662,84 @@ exit 0
 %{_libdir}/libkadm5srv_mit.so.*
 
 %changelog
-* Fri Jun 02 2023 Julien Rische <jrische@redhat.com> - 1.20.1-9
+* Tue Aug 08 2023 Julien Rische <jrische@redhat.com> - 1.21.1-1
+- New upstream version (1.21.1)
+- Fix double-free in KDC TGS processing (CVE-2023-39975)
+- Add support for "pac_privsvr_enctype" KDB string attribute
+  Resolves: rhbz#2060421
+
+* Thu Jun 08 2023 Julien Rische <jrische@redhat.com> - 1.20.1-9
 - Do not disable PKINIT if some of the well-known DH groups are unavailable
-- Resolves: rhbz#2209715
+  Resolves: rhbz#2187722
 - Make PKINIT CMS SHA-1 signature verification available in FIPS mode
-- Resolves: rhbz#2209717
+  Resolves: rhbz#2155607
 - Allow to set PAC ticket signature as optional
-- Resolves: rhbz#2211388
+  Resolves: rhbz#2178298
 
 * Wed Feb 22 2023 Julien Rische <jrische@redhat.com> - 1.20.1-8
 - Fix datetime parsing in kadmin on s390x
-- Resolves: rhbz#2169985
+  Resolves: rhbz#2169985
 
 * Tue Feb 14 2023 Julien Rische <jrische@redhat.com> - 1.20.1-7
 - Fix double free on kdb5_util key creation failure
-- Resolves: rhbz#2166603
+  Resolves: rhbz#2166603
 
 * Tue Jan 31 2023 Julien Rische <jrische@redhat.com> - 1.20.1-6
 - Add support for MS-PAC extended KDC signature (CVE-2022-37967)
-- Resolves: rhbz#2165827
+  Resolves: rhbz#2165827
 
 * Thu Jan 19 2023 Julien Rische <jrische@redhat.com> - 1.20.1-5
 - Bypass FIPS restrictions to use KRB5KDF in case AES SHA-1 HMAC is enabled
 - Lazily load MD4/5 from OpenSSL if using RADIUS or RC4 enctype in FIPS mode
-- Resolves: rhbz#2162461
+  Resolves: rhbz#2162461
 
 * Thu Jan 12 2023 Julien Rische <jrische@redhat.com> - 1.20.1-4
 - Set aes256-cts-hmac-sha384-192 as EXAMLE.COM master key in kdc.conf
 - Add AES SHA-2 HMAC family as EXAMPLE.COM supported etypes in kdc.conf
-- Resolves: rhbz#2068535
+  Resolves: rhbz#2068535
 
 * Tue Jan 10 2023 Julien Rische <jrische@redhat.com> - 1.20.1-2
 - Strip debugging data from ksu executable file
-- Resolves: rhbz#2159643
+  Resolves: rhbz#2159643
 
 * Wed Dec 07 2022 Julien Rische <jrische@redhat.com> - 1.20.1-1
 - Make tests compatible with sssd-client
-- Resolves: rhbz#2151513
+  Resolves: rhbz#2151513
 - Remove invalid password expiry warning
-- Resolves: rhbz#2121099
+  Resolves: rhbz#2121099
 - Update error checking for OpenSSL CMS_verify
-- Resolves: rhbz#2063838
+  Resolves: rhbz#2063838
 - New upstream version (1.20.1)
-- Resolves: rhbz#2016312
+  Resolves: rhbz#2016312
 - Fix integer overflows in PAC parsing (CVE-2022-42898)
-- Resolves: rhbz#2140971
+  Resolves: rhbz#2140971
 
 * Tue Oct 18 2022 Julien Rische <jrische@redhat.com> - 1.19.1-23
 - Fix kprop for propagating dump files larger than 4GB
-- Resolves: rhbz#2133014
+  Resolves: rhbz#2133014
 
 * Fri Jul 08 2022 Julien Rische <jrische@redhat.com> - 1.19.1-22
 - Restore "supportedCMSTypes" attribute in PKINIT preauth requests
 - Set SHA-512 or SHA-256 with RSA as preferred CMS signature algorithms
-- Resolves: rhbz#2068935
+  Resolves: rhbz#2068935
 
 * Thu Jun 23 2022 Julien Rische <jrische@redhat.com> - 1.19.1-21
 - Fix libkrad client cleanup
 - Allow use of larger RADIUS attributes in krad library
-- Resolves: rhbz#2100351
+  Resolves: rhbz#2100351
 
 * Thu May 12 2022 Julien Rische <jrische@redhat.com> - 1.19.1-20
 - Fix OpenSSL 3 MD5 encyption in FIPS mode
 - Allow libkrad UDP/TCP connection to localhost in FIPS mode
-- Resolves: rhbz#2068458
+  Resolves: rhbz#2068458
 
 * Mon May 02 2022 Julien Rische <jrische@redhat.com> - 1.19.1-19
 - Use p11-kit as default PKCS11 module
-- Resolves: rhbz#2030981
+  Resolves: rhbz#2030981
 
 * Tue Apr 26 2022 Julien Rische <jrische@redhat.com> - 1.19.1-18
 - Try harder to avoid password change replay errors
-- Resolves: rhbz#2075186
+  Resolves: rhbz#2075186
 
 * Mon Mar 14 2022 Julien Rische <jrische@redhat.com> - 1.19.1-15
 - Use SHA-256 instead of SHA-1 for PKINIT CMS digest
@@ -750,11 +750,11 @@ exit 0
 
 * Fri Dec 17 2021 Antonio Torres <antorres@redhat.com> - 1.19.1-13
 - Remove -specs= from krb5-config output
-- Resolves #1997021
+- Resolves rhbz#1997021
 
 * Wed Oct 20 2021 Antonio Torres <antorres@redhat.com> - 1.19.1-12
 - Fix KDC null deref on TGS inner body null server (CVE-2021-37750)
-- Resolves: #1997602
+  Resolves: rhbz#1997602
 
 * Mon Aug 09 2021 Mohan Boddu <mboddu@redhat.com> - 1.19.1-11.1
 - Rebuilt for IMA sigs, glibc 2.34, aarch64 flags
@@ -762,39 +762,39 @@ exit 0
 
 * Tue Jul 20 2021 Robbie Harwood <rharwood@redhat.com> - 1.19.1-11
 - Fix KDC null deref on bad encrypted challenge (CVE-2021-36222)
-- Resolves: #1983733
+  Resolves: rhbz#1983733
 
 * Wed Jul 14 2021 Robbie Harwood <rharwood@redhat.com> - 1.19.1-10
 - Update OpenSSL 3 provider handling to clean up properly
-- Resolves: #1955873
+  Resolves: rhbz#1955873
 
 * Mon Jun 21 2021 Robbie Harwood <rharwood@redhat.com> - 1.19.1-9
 - Sync openssl3 patches with upstream
-- Resolves: #1955873
+  Resolves: rhbz#1955873
 
 * Thu Jun 17 2021 Robbie Harwood <rharwood@redhat.com> - 1.19.1-8
 - Rebuild for rpminspect and mass rebuild cleanup; no code changes
-- Resolves: #1967505
+  Resolves: rhbz#1967505
 
 * Thu Jun 17 2021 Robbie Harwood <rharwood@redhat.com> - 1.19.1-7
 - Fix several fallback canonicalization problems
-- Resolves: #1967505
+  Resolves: rhbz#1967505
 
 * Tue Jun 15 2021 Mohan Boddu <mboddu@redhat.com> - 1.19.1-6.1
 - Rebuilt for RHEL 9 BETA for openssl 3.0
-- Resolves: rhbz#1971065
+  Resolves: rhbz#1971065
 
 * Thu Jun 10 2021 Robbie Harwood <rharwood@redhat.com> - 1.19.1-6
 - Backport KCM retrieval fixes
-- Resolves: #1956403
+  Resolves: rhbz#1956403
 
 * Thu May 20 2021 Robbie Harwood <rharwood@redhat.com> - 1.19.1-5
 - Fix DES3 mention in KDFs
-- Resolves: #1955873
+  Resolves: rhbz#1955873
 
 * Wed May 19 2021 Robbie Harwood <rharwood@redhat.com> - 1.19.1-4
 - Port to OpenSSL 3 (alpha 15)
-- Resolves: #1955873
+  Resolves: rhbz#1955873
 
 * Fri Apr 16 2021 Mohan Boddu <mboddu@redhat.com> - 1.19.1-3.1
 - Rebuilt for RHEL 9 BETA on Apr 15th 2021. Related: rhbz#1947937
@@ -859,7 +859,7 @@ exit 0
 
 * Tue Nov 17 2020 Robbie Harwood <rharwood@redhat.com> - 1.18.2-30
 - Migrate /var/run to /run, an exercise in pointlessness
-- Resolves: #1898410
+  Resolves: rhbz#1898410
 
 * Thu Nov 05 2020 Robbie Harwood <rharwood@redhat.com> - 1.18.2-29
 - Add recursion limit for ASN.1 indefinite lengths (CVE-2020-28196)
@@ -871,7 +871,7 @@ exit 0
 - Fix build of previous
 
 * Wed Oct 21 2020 Robbie Harwood <rharwood@redhat.com> - 1.18.2-26
-- Cross-realm s4u fixes for samba (#1836630)
+- Cross-realm s4u fixes for samba (rhbz#1836630)
 
 * Thu Oct 15 2020 Robbie Harwood <rharwood@redhat.com> - 1.18.2-25
 - Unify kvno option documentation
@@ -881,14 +881,14 @@ exit 0
 
 * Thu Sep 10 2020 Robbie Harwood <rharwood@redhat.com> - 1.18.2-23
 - Use `systemctl reload` to HUP the KDC during logrotate
-- Resolves: #1877692
+  Resolves: rhbz#1877692
 
 * Wed Sep 09 2020 Robbie Harwood <rharwood@redhat.com> - 1.18.2-22
 - Fix input length checking in SPNEGO DER decoding
 
 * Fri Aug 28 2020 Robbie Harwood <rharwood@redhat.com> - 1.18.2-21
 - Mark crypto-polices snippet as missingok
-- Resolves: #1868379
+  Resolves: rhbz#1868379
 
 * Thu Aug 13 2020 Robbie Harwood <rharwood@redhat.com> - 1.18.2-20
 - Temporarily dns_canonicalize_hostname=fallback changes
@@ -905,7 +905,7 @@ exit 0
 
 * Mon Aug 03 2020 Robbie Harwood <rharwood@redhat.com> - 1.18.2-16
 - Disable tests on s390x
-- Resolves: #1863952
+  Resolves: rhbz#1863952
 
 * Sat Aug 01 2020 Fedora Release Engineering <releng@fedoraproject.org> - 1.18.2-15
 - Second attempt - Rebuilt for
@@ -926,7 +926,7 @@ exit 0
 
 * Wed Jul 08 2020 Robbie Harwood <rharwood@redhat.com> - 1.18.2-10
 - Set qualify_shortname empty in default configuration
-- Resolves: #1852041
+  Resolves: rhbz#1852041
 
 * Mon Jun 15 2020 Robbie Harwood <rharwood@redhat.com> - 1.18.2-9
 - Use two queues for concurrent t_otp.py daemons
@@ -1100,7 +1100,7 @@ exit 0
 
 * Mon Jul 15 2019 Robbie Harwood <rharwood@redhat.com> - 1.17-35
 - Don't error on invalid enctypes in keytab
-- Resolves: #1724380
+  Resolves: rhbz#1724380
 
 * Tue Jul 02 2019 Robbie Harwood <rharwood@redhat.com> - 1.17-34
 - Remove now-unused checksum functions
@@ -1185,7 +1185,7 @@ exit 0
 
 * Thu Apr 11 2019 Robbie Harwood <rharwood@redhat.com> - 1.17-8
 - Implement krb5_cc_remove_cred for remaining types
-- Resolves: #1693836
+  Resolves: rhbz#1693836
 
 * Mon Apr 01 2019 Robbie Harwood <rharwood@redhat.com> - 1.17-7
 - FIPS-aware SPAKE group negotiation
@@ -1220,7 +1220,7 @@ exit 0
 
 * Mon Dec 17 2018 Robbie Harwood <rharwood@redhat.com> - 1.17-1.beta2.2
 - Restore pdfs source file
-- Resolves: #1659716
+  Resolves: rhbz#1659716
 
 * Thu Dec 06 2018 Robbie Harwood <rharwood@redhat.com> - 1.17-1.beta2.1
 - New upstream release (1.17-beta2)
@@ -1234,26 +1234,26 @@ exit 0
 
 * Thu Nov 08 2018 Robbie Harwood <rharwood@redhat.com> - 1.17-1.beta1.1
 - Fix spurious errors from kcmio_unix_socket_write
-- Resolves: #1645912
+  Resolves: rhbz#1645912
 
 * Thu Nov 01 2018 Robbie Harwood <rharwood@redhat.com> - 1.17-0.beta1.1
 - New upstream beta release
 
 * Wed Oct 24 2018 Robbie Harwood <rharwood@redhat.com> - 1.16.1-25
 - Update man pages to reference kerberos(7)
-- Resolves: #1143767
+  Resolves: rhbz#1143767
 
 * Wed Oct 17 2018 Robbie Harwood <rharwood@redhat.com> - 1.16.1-24
 - Use port-sockets.h macros in cc_kcm, sendto_kdc
-- Resolves: #1631998
+  Resolves: rhbz#1631998
 
 * Wed Oct 17 2018 Robbie Harwood <rharwood@redhat.com> - 1.16.1-23
 - Correct kpasswd_server description in krb5.conf(5)
-- Resolves: #1640272
+  Resolves: rhbz#1640272
 
 * Mon Oct 15 2018 Robbie Harwood <rharwood@redhat.com> - 1.16.1-22
 - Prefer TCP to UDP for password changes
-- Resolves: #1637611
+  Resolves: rhbz#1637611
 
 * Tue Oct 09 2018 Adam Williamson <awilliam@redhat.com> - 1.16.1-21
 - Revert the patch from -20 for now as it seems to make FreeIPA worse
@@ -1302,18 +1302,18 @@ exit 0
 
 * Thu Jun 14 2018 Robbie Harwood <rharwood@redhat.com> - 1.16.1-6
 - Switch to python3-sphinx for docs
-- Resolves: #1590928
+  Resolves: rhbz#1590928
 
 * Thu Jun 14 2018 Robbie Harwood <rharwood@redhat.com> - 1.16.1-5
 - Make docs build python3-compatible
-- Resolves: #1590928
+  Resolves: rhbz#1590928
 
 * Thu Jun 07 2018 Robbie Harwood <rharwood@redhat.com> - 1.16.1-4
 - Update includedir processing to match upstream
 
 * Fri Jun 01 2018 Robbie Harwood <rharwood@redhat.com> - 1.16.1-3
 - Log when non-root ksu authorization fails
-- Resolves: #1575771
+  Resolves: rhbz#1575771
 
 * Fri May 04 2018 Robbie Harwood <rharwood@redhat.com> - 1.16.1-2
 - Remove "-nodes" option from make-certs scripts
@@ -1335,7 +1335,7 @@ exit 0
 
 * Mon Apr 23 2018 Robbie Harwood <rharwood@redhat.com> - 1.16-23
 - Explicitly use openssl rather than builtin crypto
-- Resolves: #1570910
+  Resolves: rhbz#1570910
 
 * Tue Apr 17 2018 Robbie Harwood <rharwood@redhat.com> - 1.16-22
 - Merge duplicate subsections in profile library
@@ -1385,7 +1385,7 @@ exit 0
 
 * Wed Mar 07 2018 Robbie Harwood <rharwood@redhat.com> - 1.16-8
 - Fix capaths "." values on client
-- Resolves: 1551099
+  Resolves: 1551099
 
 * Tue Feb 13 2018 Robbie Harwood <rharwood@redhat.com> - 1.16-7
 - Fix flaws in LDAP DN checking
@@ -1394,7 +1394,7 @@ exit 0
 * Mon Feb 12 2018 Robbie Harwood <rharwood@redhat.com> - 1.16-6
 - Fix a leak in the previous commit
 - Restore dist macro that was accidentally removed
-- Resolves: #1540939
+  Resolves: rhbz#1540939
 
 * Wed Feb 07 2018 Fedora Release Engineering <releng@fedoraproject.org> - 1.16-5
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_28_Mass_Rebuild
@@ -1407,7 +1407,7 @@ exit 0
 
 * Tue Dec 12 2017 Robbie Harwood <rharwood@redhat.com> - 1.16-2
 - Fix network service dependencies
-- Resolves: #1525230
+  Resolves: rhbz#1525230
 
 * Wed Dec 06 2017 Robbie Harwood <rharwood@redhat.com> - 1.16-1
 - New upstream release (1.16)
@@ -1437,12 +1437,12 @@ exit 0
 
 * Wed Sep 06 2017 Robbie Harwood <rharwood@redhat.com> - 1.15.1-28
 - Save other programs from worrying about CVE-2017-11462
-- Resolves: #1488873
-- Resolves: #1488874
+  Resolves: rhbz#1488873
+  Resolves: rhbz#1488874
 
 * Tue Sep 05 2017 Robbie Harwood <rharwood@redhat.com> - 1.15.1-27
 - Add hostname-based ccselect module
-- Resolves: #1463665
+  Resolves: rhbz#1463665
 
 * Tue Sep 05 2017 Robbie Harwood <rharwood@redhat.com> - 1.15.1-26
 - Backport upstream certauth EKU fixes
@@ -1485,15 +1485,15 @@ exit 0
 
 * Mon Jun 26 2017 Robbie Harwood <rharwood@redhat.com> - 1.15.1-13
 - Fix arch name (ppc64le, not ppc64el)
-- Related-to: #1464381
+- Related-to: rhbz#1464381
 
 * Mon Jun 26 2017 Robbie Harwood <rharwood@redhat.com> - 1.15.1-12
 - Skip test suite on ppc64el
-- Related-to: #1464381
+- Related-to: rhbz#1464381
 
 * Fri Jun 23 2017 Robbie Harwood <rharwood@redhat.com> - 1.15.1-11
 - Include more test suite changes from upstream
-- Resolves: #1464381
+  Resolves: rhbz#1464381
 
 * Wed Jun 07 2017 Robbie Harwood <rharwood@redhat.com> - 1.15.1-10
 - Fix custom build with -DDEBUG
@@ -1509,12 +1509,12 @@ exit 0
 
 * Thu Apr 13 2017 Robbie Harwood <rharwood@redhat.com> - 1.15.1-6
 - Include fixes for previous commit
-- Resolves: #1433083
+  Resolves: rhbz#1433083
 
 * Thu Apr 13 2017 Robbie Harwood <rharwood@redhat.com> - 1.15.1-5
 - Automatically add includedir where not present
 - Try removing sleep statement to see if it is still needed
-- Resolves: #1433083
+  Resolves: rhbz#1433083
 
 * Fri Apr 07 2017 Robbie Harwood <rharwood@redhat.com> - 1.15.1-4
 - Fix use of enterprise principals with forwarding
@@ -1524,7 +1524,7 @@ exit 0
 
 * Tue Mar 07 2017 Robbie Harwood <rharwood@redhat.com> - 1.15.1-2
 - Remove duplication between subpackages
-- Resolves: #1250228
+  Resolves: rhbz#1250228
 
 * Fri Mar 03 2017 Robbie Harwood <rharwood@redhat.com> - 1.15.1-1
 - New upstream release - 1.15.1
@@ -1558,14 +1558,14 @@ exit 0
 * Thu Oct 20 2016 Robbie Harwood <rharwood@redhat.com> - 1.15-beta1-1
 - New upstream release
 - Update selinux with RHEL hygene
-- Resolves: #1314096
+  Resolves: rhbz#1314096
 
 * Tue Oct 11 2016 Tomáš Mráz <tmraz@redhat.com> - 1.14.4-6
 - rebuild with OpenSSL 1.1.0, added backported upstream patch
 
 * Fri Sep 30 2016 Robbie Harwood <rharwood@redhat.com> - 1.14.4-5
 - Properly close krad sockets
-- Resolves: #1380836
+  Resolves: rhbz#1380836
 
 * Fri Sep 30 2016 Robbie Harwood <rharwood@redhat.com> - 1.14.4-4
 - Fix backward check in kprop.service
@@ -1584,42 +1584,42 @@ exit 0
 
 * Mon Sep 19 2016 Robbie Harwood <rharwood@redhat.com> - 1.14.3-9
 - Add krb5_db_register_keytab
-- Resolves: #1376812
+  Resolves: rhbz#1376812
 
 * Mon Aug 29 2016 Robbie Harwood <rharwood@redhat.com> - 1.14.3-8
 - Use responder for non-preauth AS requests
-- Resolves: #1370622
+  Resolves: rhbz#1370622
 
 * Mon Aug 29 2016 Robbie Harwood <rharwood@redhat.com> - 1.14.3-7
 - Guess Samba client mutual flag using ap_option
-- Resolves: #1370980
+  Resolves: rhbz#1370980
 
 * Thu Aug 25 2016 Robbie Harwood <rharwood@redhat.com> - 1.14.3-6
 - Fix KDC return code and set prompt types for OTP client preauth
-- Resolves: #1370072
+  Resolves: rhbz#1370072
 
 * Mon Aug 15 2016 Robbie Harwood <rharwood@redhat.com> - 1.14.3-5
 - Turn OFD locks back on with glibc workaround
-- Resolves: #1274922
+  Resolves: rhbz#1274922
 
 * Wed Aug 10 2016 Robbie Harwood <rharwood@redhat.com> - 1.14.3-4
 - Fix use of KKDCPP with SNI
-- Resolves: #1365027
+  Resolves: rhbz#1365027
 
 * Fri Aug 05 2016 Robbie Harwood <rharwood@redhat.com> - 1.14.3-3
 - Make krb5-devel depend on libkadm5
-- Resolves: #1364487
+  Resolves: rhbz#1364487
 
 * Wed Aug 03 2016 Robbie Harwood <rharwood@redhat.com> - 1.14.3-2
 - Up-port a bunch of stuff from the el-7.3 cycle
-- Resolves: #1255450, #1314989
+  Resolves: rhbz#1255450, rhbz#1314989
 
 * Mon Aug 01 2016 Robbie Harwood <rharwood@redhat.com> - 1.14.3-1
 - New upstream version 1.14.3
 
 * Thu Jul 28 2016 Robbie Harwood <rharwood@redhat.com> - 1.14.1-9
 - Fix CVE-2016-3120
-- Resolves: #1361051
+  Resolves: rhbz#1361051
 
 * Wed Jun 22 2016 Robbie Harwood <rharwood@redhat.com> - 1.14.1-8
 - Fix incorrect recv() size calculation in libkrad
@@ -1632,18 +1632,18 @@ exit 0
 
 * Tue Apr 05 2016 Robbie Harwood <rharwood@redhat.com> - 1.14.1-5
 - Use the correct patches this time.
-- Resolves: #1321135
+  Resolves: rhbz#1321135
 
 * Mon Apr 04 2016 Robbie Harwood <rharwood@redhat.com> - 1.14.1-4
 - Add send/receive sendto_kdc hooks and corresponding tests
-- Resolves: #1321135
+  Resolves: rhbz#1321135
 
 * Fri Mar 18 2016 Robbie Harwood <rharwood@redhat.com> - 1.14.1-3
 - Fix CVE-2016-3119 (NULL deref in LDAP module)
 
 * Thu Mar 17 2016 Robbie Harwood <rharwood@redhat.com> - 1.14.1-2
 - Backport OID mech fix
-- Resolves: #1317609
+  Resolves: rhbz#1317609
 
 * Mon Feb 29 2016 Robbie Harwood <rharwood@redhat.com> - 1.14.1-1
 - New rawhide, new upstream version
@@ -1653,7 +1653,7 @@ exit 0
 
 * Mon Feb 22 2016 Robbie Harwood <rharwood@redhat.com> - 1.14-23
 - Fix log file permissions patch with our selinux
-- Resolves: #1309421
+  Resolves: rhbz#1309421
 
 * Fri Feb 19 2016 Robbie Harwood <rharwood@redhat.com> - 1.14-22
 - Backport my interposer fixes from upstream
@@ -1662,7 +1662,7 @@ exit 0
 * Tue Feb 16 2016 Robbie Harwood <rharwood@redhat.com> - 1.14-21
 - Adjust dependency on crypto-polices to be just the file we want
 - Patch courtesy of lslebodn
-- Resolves: #1308984
+  Resolves: rhbz#1308984
 
 * Thu Feb 04 2016 Fedora Release Engineering <releng@fedoraproject.org> - 1.14-20
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_24_Mass_Rebuild
@@ -1670,21 +1670,21 @@ exit 0
 * Thu Jan 28 2016 Robbie Harwood <rharwood@redhat.com> - 1.14-19
 - Replace _kadmin/_kprop with systemd macros
 - Remove traces of upstart from fedora package per policy
-- Resolves: #1290185
+  Resolves: rhbz#1290185
 
 * Wed Jan 27 2016 Robbie Harwood <rharwood@redhat.com> - 1.14-18
 - Fix CVE-2015-8629, CVE-2015-8630, CVE-2015-8631
 
 * Thu Jan 21 2016 Robbie Harwood <rharwood@redhat.com> - 1.14-17
 - Make krb5kdc.log not world-readable by default
-- Resolves: #1276484
+  Resolves: rhbz#1276484
 
 * Thu Jan 21 2016 Robbie Harwood <rharwood@redhat.com> - 1.14-16
 - Allow verification of attributes on krb5.conf
 
 * Wed Jan 20 2016 Robbie Harwood <rharwood@redhat.com> - 1.14-15
 - Use "new" systemd macros for service handling.  (Thanks vpavlin!)
-- Resolves: #850399
+  Resolves: rhbz#850399
 
 * Wed Jan 20 2016 Robbie Harwood <rharwood@redhat.com> - 1.14-14
 - Remove WITH_NSS macro (always false)
@@ -1694,13 +1694,13 @@ exit 0
 
 * Fri Jan 08 2016 Robbie Harwood <rharwood@redhat.com> - 1.14-13
 - Backport fix for chrome crash in spnego_gss_inquire_context
-- Resolves: #1295893
+  Resolves: rhbz#1295893
 
 * Wed Dec 16 2015 Robbie Harwood <rharwood@redhat.com> - 1.14-12
 - Backport patch to fix mechglue for gss_inqure_attrs_for_mech()
 
 * Thu Dec 03 2015 Robbie Harwood <rharwood@redhat.com> - 1.14-11
-- Backport interposer fix (#1284985)
+- Backport interposer fix (rhbz#1284985)
 - Drop workaround pwsize initialization patch (gcc has been fixed)
 
 * Tue Nov 24 2015 Robbie Harwood <rharwood@redhat.com> - 1.14-10
@@ -1735,7 +1735,7 @@ exit 0
 - New upstream beta version
 
 * Thu Oct 08 2015 Robbie Harwood <rharwood@redhat.com> - 1.13.2-13
-- Work around KDC client prinicipal in referrals issue (#1259844)
+- Work around KDC client prinicipal in referrals issue (rhbz#1259844)
 
 * Thu Oct 01 2015 Robbie Harwood <rharwood@redhat.com> - 1.13.2-12
 - Enable building with bad system /etc/krb5.conf
@@ -1748,7 +1748,7 @@ exit 0
 - Nix /usr/share/krb5.conf.d to reduce complexity
 
 * Wed Sep 23 2015 Robbie Harwood <rharwood@redhat.com> - 1.13.2-9
-- Depend on crypto-policies which provides /etc/krb5.conf.d (#1225792)
+- Depend on crypto-policies which provides /etc/krb5.conf.d (rhbz#1225792)
 
 * Thu Sep 10 2015 Robbie Harwood <rharwood@redhat.com> - 1.13.2-8
 - Remove dependency on systemd-sysv which is no longer needed for fedora > 20
@@ -1757,7 +1757,7 @@ exit 0
 
 * Thu Sep 10 2015 Robbie Harwood <rharwood@redhat.com> - 1.13.2-7
 - Support config snippets in /etc/krb5.conf.d/ and /usr/share/krb5.conf.d/
-  (#1225792, #1146370, #1145808)
+  (rhbz#1225792, rhbz#1146370, rhbz#1145808)
 
 * Thu Jun 25 2015 Roland Mainz <rmainz@redhat.com> - 1.13.2-6
 - Use system nss_wrapper and socket_wrapper for testing.
@@ -1765,8 +1765,8 @@ exit 0
 
 * Thu Jun 25 2015 Roland Mainz <rmainz@redhat.com> - 1.13.2-5
 - Remove Zanata test glue and related workarounds
-  - Bug #1234292 ("IPA server cannot be run in container due to incorrect /usr/sbin/_kadmind")
-  - Bug #1234326 ("krb5-server introduces new rpm dependency on ksh")
+  - Bug rhbz#1234292 ("IPA server cannot be run in container due to incorrect /usr/sbin/_kadmind")
+  - Bug rhbz#1234326 ("krb5-server introduces new rpm dependency on ksh")
 
 * Thu Jun 18 2015 Roland Mainz <rmainz@redhat.com> - 1.13.2-4
 - Fix dependicy on binfmt.service
@@ -1775,12 +1775,12 @@ exit 0
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_23_Mass_Rebuild
 
 * Tue Jun 2 2015 Roland Mainz <rmainz@redhat.com> - 1.13.2-2
-- Add patch to fix Redhat Bug #1227542 ("[SELinux] AVC denials may appear
+- Add patch to fix Redhat Bug rhbz#1227542 ("[SELinux] AVC denials may appear
   when kadmind starts"). The issue was caused by an unneeded |htons()|
   which triggered SELinux AVC denials due to the "random" port usage.
 
 * Thu May 21 2015 Roland Mainz <rmainz@redhat.com> - 1.13.2-1
-- Add fix for RedHat Bug #1164304 ("Upstream unit tests loads
+- Add fix for RedHat Bug rhbz#1164304 ("Upstream unit tests loads
   the installed shared libraries instead the ones from the build")
 
 * Thu May 14 2015 Roland Mainz <rmainz@redhat.com> - 1.13.2-0
@@ -1791,7 +1791,7 @@ exit 0
 - Minor spec cleanup
 
 * Mon May 4 2015 Roland Mainz <rmainz@redhat.com> - 1.13.1-4
-- fix for CVE-2015-2694 (#1216133) "requires_preauth bypass
+- fix for CVE-2015-2694 (rhbz#1216133) "requires_preauth bypass
   in PKINIT-enabled KDC".
   In MIT krb5 1.12 and later, when the KDC is configured with
   PKINIT support, an unauthenticated remote attacker can
@@ -1801,13 +1801,13 @@ exit 0
   dictionary attack against the user's password.
 
 * Wed Mar 25 2015 Roland Mainz <rmainz@redhat.com> - 1.13.1-3
-- Add temporay workaround for RH bug #1204646 ("krb5-config
+- Add temporay workaround for RH bug rhbz#1204646 ("krb5-config
   returns wrong -specs path") which modifies krb5-config post
   build so that development of krb5 dependicies gets unstuck.
   This MUST be removed before rawhide becomes F23 ...
 
 * Thu Mar 19 2015 Roland Mainz <rmainz@redhat.com> - 1.13.1-2
-- fix for CVE-2014-5355 (#1193939) "krb5: unauthenticated
+- fix for CVE-2014-5355 (rhbz#1193939) "krb5: unauthenticated
   denial of service in recvauth_common() and others"  
 
 * Fri Feb 13 2015 Roland Mainz <rmainz@redhat.com> - 1.13.1-1
@@ -1818,13 +1818,13 @@ exit 0
 - Minor spec cleanup
 
 * Wed Feb 4 2015 Roland Mainz <rmainz@redhat.com> - 1.13-8
-- fix for CVE-2014-5352 (#1179856) "gss_process_context_token()
+- fix for CVE-2014-5352 (rhbz#1179856) "gss_process_context_token()
   incorrectly frees context (MITKRB5-SA-2015-001)"
-- fix for CVE-2014-9421 (#1179857) "kadmind doubly frees partial
+- fix for CVE-2014-9421 (rhbz#1179857) "kadmind doubly frees partial
   deserialization results (MITKRB5-SA-2015-001)"
-- fix for CVE-2014-9422 (#1179861) "kadmind incorrectly
+- fix for CVE-2014-9422 (rhbz#1179861) "kadmind incorrectly
   validates server principal name (MITKRB5-SA-2015-001)"
-- fix for CVE-2014-9423 (#1179863) "libgssrpc server applications
+- fix for CVE-2014-9423 (rhbz#1179863) "libgssrpc server applications
   leak uninitialized bytes (MITKRB5-SA-2015-001)"
 
 * Wed Feb 4 2015 Roland Mainz <rmainz@redhat.com> - 1.13-7
@@ -1836,17 +1836,17 @@ exit 0
 - Support KDC_ERR_MORE_PREAUTH_DATA_REQUIRED (RT#8063)
 
 * Mon Jan 26 2015 Roland Mainz <rmainz@redhat.com> - 1.13-5
-- fix for kinit -C loops (#1184629, MIT/krb5 issue 243, "Do not
+- fix for kinit -C loops (rhbz#1184629, MIT/krb5 issue 243, "Do not
   loop on principal unknown errors").
 - Added "python-sphinx-latex" to the build requirements
   to fix build failures on F22 machines.
 
 * Thu Dec 18 2014 Roland Mainz <rmainz@redhat.com> - 1.13-4
-- fix for CVE-2014-5354 (#1174546) "krb5: NULL pointer
+- fix for CVE-2014-5354 (rhbz#1174546) "krb5: NULL pointer
   dereference when using keyless entries"  
 
 * Wed Dec 17 2014 Roland Mainz <rmainz@redhat.com> - 1.13-3
-- fix for CVE-2014-5353 (#1174543) "Fix LDAP misused policy
+- fix for CVE-2014-5353 (rhbz#1174543) "Fix LDAP misused policy
   name crash"  
 
 * Wed Oct 29 2014 Roland Mainz <rmainz@redhat.com> - 1.13-2
@@ -1856,18 +1856,18 @@ exit 0
 
 * Wed Oct 29 2014 Roland Mainz <rmainz@redhat.com> - 1.13-1
 - Update from krb5-1.13-alpha1 to final krb5-1.13
-- Removed patch for CVE-2014-5351 (#1145425) "krb5: current
+- Removed patch for CVE-2014-5351 (rhbz#1145425) "krb5: current
   keys returned when randomizing the keys for a service principal" -
   now part of upstream sources
-- Use patch for glibc |eventfd()| prototype mismatch (#1147887) only
+- Use patch for glibc |eventfd()| prototype mismatch (rhbz#1147887) only
   for Fedora > 20
 
 * Tue Sep 30 2014 Roland Mainz <rmainz@redhat.com> - 1.13-0.alpha1.3
 - fix build failure caused by change of prototype for glibc
-  |eventfd()| (#1147887)
+  |eventfd()| (rhbz#1147887)
 
 * Mon Sep 29 2014 Roland Mainz <rmainz@redhat.com> - 1.13-0.alpha1.3
-- fix for CVE-2014-5351 (#1145425) "krb5: current keys returned when
+- fix for CVE-2014-5351 (rhbz#1145425) "krb5: current keys returned when
   randomizing the keys for a service principal"
 
 * Mon Sep  8 2014 Nalin Dahyabhai <nalin@redhat.com> - 1.13-0.alpha1.3
@@ -1883,7 +1883,7 @@ exit 0
 
 * Wed Aug 20 2014 Nalin Dahyabhai <nalin@redhat.com> - 1.12.2-3
 - pull in upstream fix for an incorrect check on the value returned by a
-  strdup() call (#1132062)
+  strdup() call (rhbz#1132062)
 
 * Sun Aug 17 2014 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1.12.2-2
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_21_22_Mass_Rebuild
@@ -1891,7 +1891,7 @@ exit 0
 * Fri Aug 15 2014 Nalin Dahyabhai <nalin@redhat.com> - 1.12.2-1
 - update to 1.12.2
   - drop patch for RT#7820, fixed in 1.12.2
-  - drop patch for #231147, fixed as RT#3277 in 1.12.2
+  - drop patch for rhbz#231147, fixed as RT#3277 in 1.12.2
   - drop patch for RT#7818, fixed in 1.12.2
   - drop patch for RT#7836, fixed in 1.12.2
   - drop patch for RT#7858, fixed in 1.12.2
@@ -1902,7 +1902,7 @@ exit 0
   - drop patch for CVE-2014-4344, included in 1.12.2
   - drop patch for CVE-2014-4345, included in 1.12.2
 - replace older proposed changes for ksu with backports of the changes
-  after review and merging upstream (#1015559, #1026099, #1118347)
+  after review and merging upstream (rhbz#1015559, rhbz#1026099, rhbz#1118347)
 
 * Thu Aug  7 2014 Nalin Dahyabhai <nalin@redhat.com> - 1.12.1-14
 - incorporate fix for MITKRB5-SA-2014-001 (CVE-2014-4345)
@@ -1913,21 +1913,21 @@ exit 0
 
 * Wed Jul 16 2014 Nalin Dahyabhai <nalin@redhat.com> - 1.12.1-12
 - gssapi: pull in proposed fix for a double free in initiators (David
-  Woodhouse, CVE-2014-4343, #1117963)
+  Woodhouse, CVE-2014-4343, rhbz#1117963)
 
 * Sat Jul 12 2014 Tom Callaway <spot@fedoraproject.org> - 1.12.1-11
 - fix license handling
 
 * Mon Jul  7 2014 Nalin Dahyabhai <nalin@redhat.com> - 1.12.1-10
 - pull in fix for denial of service by injection of malformed GSSAPI tokens
-  (CVE-2014-4341, CVE-2014-4342, #1116181)
+  (CVE-2014-4341, CVE-2014-4342, rhbz#1116181)
 
 * Tue Jun 24 2014 Nalin Dahyabhai <nalin@redhat.com> - 1.12.1-9
 - pull in changes from upstream which add processing of the contents of
-  /etc/gss/mech.d/*.conf when loading GSS modules (#1102839)
+  /etc/gss/mech.d/*.conf when loading GSS modules (rhbz#1102839)
 
 * Thu Jun 12 2014 Nalin Dahyabhai <nalin@redhat.com> - 1.12.1-8
-- pull in fix for building against tcl 8.6 (#1107061)
+- pull in fix for building against tcl 8.6 (rhbz#1107061)
 
 * Sun Jun 08 2014 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1.12.1-7
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_21_Mass_Rebuild
@@ -1939,14 +1939,14 @@ exit 0
 - spnego: pull in patch from master to restore preserving the OID of the
   mechanism the initiator requested when we have multiple OIDs for the same
   mechanism, so that we reply using the same mechanism OID and the initiator
-  doesn't get confused (#1066000, RT#7858)
+  doesn't get confused (rhbz#1066000, RT#7858)
 
 * Fri Feb  7 2014 Nalin Dahyabhai <nalin@redhat.com> - 1.12.1-4
 - pull in patch from master to move the default directory which the KDC uses
   when computing the socket path for a local OTP daemon from the database
   directory (/var/kerberos/krb5kdc) to the newly-added run directory
   (/run/krb5kdc), in line with what we're expecting in 1.13 (RT#7859, more
-  of #1040056 as #1063905)
+  of rhbz#1040056 as rhbz#1063905)
 - add a tmpfiles.d configuration file to have /run/krb5kdc created at
   boot-time
 - own /var/run/krb5kdc
@@ -1956,12 +1956,12 @@ exit 0
 
 * Fri Jan 31 2014 Nalin Dahyabhai <nalin@redhat.com>
 - add currently-proposed changes to teach ksu about credential cache
-  collections and the default_ccache_name setting (#1015559,#1026099)
+  collections and the default_ccache_name setting (rhbz#1015559,rhbz#1026099)
 
 * Tue Jan 21 2014 Nalin Dahyabhai <nalin@redhat.com> - 1.12.1-2
 - pull in multiple changes to allow replay caches to be added to a GSS
   credential store as "rcache"-type credentials (RT#7818/#7819/#7836,
-  #1056078/#1056080)
+  rhbz#1056078/rhbz#1056080)
 
 * Fri Jan 17 2014 Nalin Dahyabhai <nalin@redhat.com> - 1.12.1-1
 - update to 1.12.1
@@ -1974,11 +1974,11 @@ exit 0
   - drop patches for RT#7813 and RT#7815, included now
   - add patch to always retrieve the KDC time offsets from keyring caches,
     so that we don't mistakenly interpret creds as expired before their
-    time when our clock is ahead of the KDC's (RT#7820, #1030607)
+    time when our clock is ahead of the KDC's (RT#7820, rhbz#1030607)
 
 * Mon Jan 13 2014 Nalin Dahyabhai <nalin@redhat.com> - 1.12-11
 - update the PIC patch for iaesx86.s to not use ELF relocations to the version
-  that landed upstream (RT#7815, #1045699)
+  that landed upstream (RT#7815, rhbz#1045699)
 
 * Thu Jan  9 2014 Nalin Dahyabhai <nalin@redhat.com>
 - pass -Wl,--warn-shared-textrel to the compiler when we're creating shared
@@ -1993,16 +1993,16 @@ exit 0
   master
 - make a guess at making the 32-bit AES-NI implementation sufficiently
   position-independent to not require execmod permissions for libk5crypto
-  (more of #1045699)
+  (more of rhbz#1045699)
 
 * Thu Jan  2 2014 Nalin Dahyabhai <nalin@redhat.com> - 1.12-8
 - add patch from Dhiru Kholia for the AES-NI implementations to allow
   libk5crypto to be properly marked as not needing an executable stack
-  on arches where they're used (#1045699, and so many others)
+  on arches where they're used (rhbz#1045699, and so many others)
 
 * Thu Jan  2 2014 Nalin Dahyabhai <nalin@redhat.com> - 1.12-7
 - revert that last change for a bit while sorting out execstack when we
-  use AES-NI (#1045699)
+  use AES-NI (rhbz#1045699)
 
 * Thu Dec 19 2013 Nalin Dahyabhai <nalin@redhat.com> - 1.12-6
 - add yasm as a build requirement for AES-NI support, on arches that have
@@ -2010,7 +2010,7 @@ exit 0
 
 * Thu Dec 19 2013 Nalin Dahyabhai <nalin@redhat.com> - 1.12-5
 - pull in fix from master to make reporting of errors encountered by
-  the SPNEGO mechanism work better (RT#7045, part of #1043962)
+  the SPNEGO mechanism work better (RT#7045, part of rhbz#1043962)
 
 * Thu Dec 19 2013 Nalin Dahyabhai <nalin@redhat.com>
 - update a test wrapper to properly handle things that the new libkrad does,
@@ -2020,19 +2020,19 @@ exit 0
 - revise previous patch to initialize one more element
 
 * Wed Dec 18 2013 Nalin Dahyabhai <nalin@redhat.com> - 1.12-3
-- backport fixes to krb5_copy_context (RT#7807, #1044735/#1044739)
+- backport fixes to krb5_copy_context (RT#7807, rhbz#1044735/rhbz#1044739)
 
 * Wed Dec 18 2013 Nalin Dahyabhai <nalin@redhat.com> - 1.12-2
 - pull in fix from master to return a NULL pointer rather than allocating
   zero bytes of memory if we read a zero-length input token (RT#7794, part of
-  #1043962)
+  rhbz#1043962)
 - pull in fix from master to ignore an empty token from an acceptor if
-  we've already finished authenticating (RT#7797, part of #1043962)
+  we've already finished authenticating (RT#7797, part of rhbz#1043962)
 - pull in fix from master to avoid a memory leak when a mechanism's
-  init_sec_context function fails (RT#7803, part of #1043962)
+  init_sec_context function fails (RT#7803, part of rhbz#1043962)
 - pull in fix from master to avoid a memory leak in a couple of error
   cases which could occur while obtaining acceptor credentials (RT#7805, part
-  of #1043962)
+  of rhbz#1043962)
 
 * Wed Dec 11 2013 Nalin Dahyabhai <nalin@redhat.com> - 1.12-1
 - update to 1.12 final
@@ -2049,9 +2049,9 @@ exit 0
 
 * Mon Nov 18 2013 Nalin Dahyabhai <nalin@redhat.com> - 1.11.4-2
 - pull in fix to store KDC time offsets in keyring credential caches (RT#7768,
-  #1030607)
+  rhbz#1030607)
 - pull in fix to set expiration times on credentials stored in keyring
-  credential caches (RT#7769, #1031724)
+  credential caches (RT#7769, rhbz#1031724)
 
 * Tue Nov 12 2013 Nalin Dahyabhai <nalin@redhat.com> - 1.11.4-1
 - update to 1.11.4
@@ -2060,21 +2060,21 @@ exit 0
   - drop patch for CVE-2013-1418/CVE-2013-6800, included in 1.11.4
 
 * Tue Nov 12 2013 Nalin Dahyabhai <nalin@redhat.com> - 1.11.3-31
-- switch to the simplified version of the patch for #1029110 (RT#7764)
+- switch to the simplified version of the patch for rhbz#1029110 (RT#7764)
 
 * Mon Nov 11 2013 Nalin Dahyabhai <nalin@redhat.com> - 1.11.3-30
 - check more thoroughly for errors when resolving KEYRING ccache names of type
   "persistent", which should only have a numeric UID as the next part of the
-  name (#1029110)
+  name (rhbz#1029110)
 
 * Tue Nov  5 2013 Nalin Dahyabhai <nalin@redhat.com> - 1.11.3-29
 - incorporate upstream patch for remote crash of KDCs which serve multiple
   realms simultaneously (RT#7756, CVE-2013-1418/CVE-2013-6800,
-  #1026997/#1031501)
+  rhbz#1026997/rhbz#1031501)
 
 * Mon Nov  4 2013 Nalin Dahyabhai <nalin@redhat.com> - 1.11.3-28
 - drop patch to add additional access() checks to ksu - they add to breakage
-  when non-FILE: caches are in use (#1026099), shouldn't be resulting in any
+  when non-FILE: caches are in use (rhbz#1026099), shouldn't be resulting in any
   benefit, and clash with proposed changes to fix its cache handling
 
 * Tue Oct 22 2013 Nalin Dahyabhai <nalin@redhat.com> - 1.11.3-27
@@ -2103,22 +2103,22 @@ exit 0
 - BuildRequires: pkgconfig, since configure uses it
 
 * Wed Oct 16 2013 Nalin Dahyabhai <nalin@redhat.com> - 1.11.3-26
-- create and own /etc/gss (#1019937)
+- create and own /etc/gss (rhbz#1019937)
 
 * Tue Oct 15 2013 Nalin Dahyabhai <nalin@redhat.com> - 1.11.3-25
 - pull up fix for importing previously-exported credential caches in the
-  gssapi library (RT# 7706, #1019420)
+  gssapi library (RT# 7706, rhbz#1019420)
 
 * Mon Oct 14 2013 Nalin Dahyabhai <nalin@redhat.com> - 1.11.3-24
 - backport the callback to use the libkrb5 prompter when we can't load PEM
-  files for PKINIT (RT#7590, includes part of #965721/#1016690)
-- extract the rest of the fix #965721/#1016690 from the changes for RT#7680
+  files for PKINIT (RT#7590, includes part of rhbz#965721/rhbz#1016690)
+- extract the rest of the fix rhbz#965721/rhbz#1016690 from the changes for RT#7680
 
 * Mon Oct 14 2013 Nalin Dahyabhai <nalin@redhat.com> - 1.11.3-23
-- fix trigger scriptlet's invocation of sed (#1016945)
+- fix trigger scriptlet's invocation of sed (rhbz#1016945)
 
 * Fri Oct  4 2013 Nalin Dahyabhai <nalin@redhat.com> - 1.11.3-22
-- rebuild with keyutils 1.5.8 (part of #1012043)
+- rebuild with keyutils 1.5.8 (part of rhbz#1012043)
 
 * Wed Oct  2 2013 Nalin Dahyabhai <nalin@redhat.com> - 1.11.3-21
 - switch to the version of persistent-keyring that was just merged to
@@ -2128,7 +2128,7 @@ exit 0
 * Mon Sep 30 2013 Nalin Dahyabhai <nalin@redhat.com> - 1.11.3-20
 - pull up fix for not calling a kdb plugin's check-transited-path
   method before calling the library's default version, which only knows
-  how to read what's in the configuration file (RT#7709, #1013664)
+  how to read what's in the configuration file (RT#7709, rhbz#1013664)
 
 * Thu Sep 26 2013 Nalin Dahyabhai <nalin@redhat.com> - 1.11.3-19
 - configure --without-krb5-config so that we don't pull in the old default
@@ -2139,7 +2139,7 @@ exit 0
 - fix broken dependency on awk (should be gawk, rdieter)
 
 * Wed Sep 25 2013 Nalin Dahyabhai <nalin@redhat.com> - 1.11.3-17
-- add missing dependency on newer keyutils-libs (#1012034)
+- add missing dependency on newer keyutils-libs (rhbz#1012034)
 
 * Tue Sep 24 2013 Nalin Dahyabhai <nalin@redhat.com> - 1.11.3-16
 - back out setting default_ccache_name to the new default for now, resetting
@@ -2147,11 +2147,11 @@ exit 0
 
 * Mon Sep 23 2013 Nalin Dahyabhai <nalin@redhat.com> - 1.11.3-15
 - add explicit build-time dependency on a version of keyutils that's new
-  enough to include keyctl_get_persistent() (more of #991148)
+  enough to include keyctl_get_persistent() (more of rhbz#991148)
 
 * Thu Sep 19 2013 Nalin Dahyabhai <nalin@redhat.com> - 1.11.3-14
 - incorporate Simo's updated backport of his updated persistent-keyring changes
-  (more of #991148)
+  (more of rhbz#991148)
 
 * Fri Sep 13 2013 Nalin Dahyabhai <nalin@redhat.com> - 1.11.3-13
 - don't break during %%check when the session keyring is revoked
@@ -2165,17 +2165,17 @@ exit 0
 
 * Mon Sep  9 2013 Nalin Dahyabhai <nalin@redhat.com> 1.11.3-11
 - don't let comments intended for one scriptlet become part of the "script"
-  that gets passed to ldconfig as part of another one (Mattias Ellert, #1005675)
+  that gets passed to ldconfig as part of another one (Mattias Ellert, rhbz#1005675)
 
 * Fri Sep  6 2013 Nalin Dahyabhai <nalin@redhat.com> 1.11.3-10
-- incorporate Simo's backport of his persistent-keyring changes (#991148)
+- incorporate Simo's backport of his persistent-keyring changes (rhbz#991148)
 - restore build-time default DEFCCNAME on Fedora 21 and later and EL, and
   instead set default_ccache_name in the default krb5.conf's [libdefaults]
-  section (#991148)
+  section (rhbz#991148)
 - on releases where we expect krb5.conf to be configured with a
   default_ccache_name, add it whenever we upgrade from an older version of
   the package that wouldn't have included it in its default configuration
-  file (#991148)
+  file (rhbz#991148)
 
 * Fri Aug 23 2013 Nalin Dahyabhai <nalin@redhat.com> 1.11.3-9
 - take another stab at accounting for UnversionedDocdirs for the -libs
@@ -2190,7 +2190,7 @@ exit 0
   of files which dictate particular exit codes before exec'ing the actual
   binaries, instead of trying to use ConditionPathExists in the unit files
   to accomplish that, so that we exit with failure properly when what we
-  expect isn't actually in effect on the system (#800343)
+  expect isn't actually in effect on the system (rhbz#800343)
 
 * Mon Jul 29 2013 Nalin Dahyabhai <nalin@redhat.com> 1.11.3-7
 - attempt to account for UnversionedDocdirs for the -libs subpackage
@@ -2202,11 +2202,11 @@ exit 0
 
 * Mon Jul 22 2013 Nalin Dahyabhai <nalin@redhat.com> 1.11.3-5
 - pull up changes to allow GSSAPI modules to provide more functions
-  (RT#7682, #986564/#986565)
+  (RT#7682, rhbz#986564/rhbz#986565)
 
 * Fri Jul 19 2013 Nalin Dahyabhai <nalin@redhat.com> 1.11.3-4
 - use (a bundled, for now, copy of) nss_wrapper to let us run some of the
-  self-tests at build-time in more places than we could previously (#978756)
+  self-tests at build-time in more places than we could previously (rhbz#978756)
 - cover inconsistencies in whether or not there's a local caching nameserver
   that's willing to answer when the build environment doesn't have a
   resolver configuration, so that nss_wrapper's faking of the local
@@ -2214,23 +2214,23 @@ exit 0
 
 * Mon Jul  1 2013 Nalin Dahyabhai <nalin@redhat.com> 1.11.3-3
 - specify dependencies on the same arch of krb5-libs by using the %%{?_isa}
-  suffix, to avoid dragging 32-bit libraries onto 64-bit systems (#980155)
+  suffix, to avoid dragging 32-bit libraries onto 64-bit systems (rhbz#980155)
 
 * Thu Jun 13 2013 Nalin Dahyabhai <nalin@redhat.com> 1.11.3-2
 - special-case /run/user/0, attempting to create it when resolving a
   directory cache below it fails due to ENOENT and we find that it doesn't
   already exist, either, before attempting to create the directory cache
-  (maybe helping, maybe just making things more confusing for #961235)
+  (maybe helping, maybe just making things more confusing for rhbz#961235)
 
 * Tue Jun  4 2013 Nalin Dahyabhai <nalin@redhat.com> 1.11.3-1
 - update to 1.11.3
   - drop patch for RT#7605, fixed in this release
   - drop patch for CVE-2002-2443, fixed in this release
   - drop patch for RT#7369, fixed in this release
-- pull upstream fix for breaking t_skew.py by adding the patch for #961221
+- pull upstream fix for breaking t_skew.py by adding the patch for rhbz#961221
 
 * Fri May 31 2013 Nalin Dahyabhai <nalin@redhat.com> 1.11.2-10
-- respin with updated version of patch for RT#7650 (#969331)
+- respin with updated version of patch for RT#7650 (rhbz#969331)
 
 * Thu May 30 2013 Nalin Dahyabhai <nalin@redhat.com> 1.11.2-9
 - don't forget to set the SELinux label when creating the directory for
@@ -2246,22 +2246,22 @@ exit 0
 
 * Tue May 28 2013 Nalin Dahyabhai <nalin@redhat.com> 1.11.2-7
 - backport fix for not being able to verify the list of transited realms
-  in GSS acceptors (RT#7639, #959685)
+  in GSS acceptors (RT#7639, rhbz#959685)
 - backport fix for not being able to pass an empty password to the
-  get-init-creds APIs and have them actually use it (RT#7642, #960001)
+  get-init-creds APIs and have them actually use it (RT#7642, rhbz#960001)
 - add backported proposed fix to use the unauthenticated server time
   as the basis for computing the requested credential expiration times,
   rather than the client's idea of the current time, which could be
-  significantly incorrect (#961221)
+  significantly incorrect (rhbz#961221)
 
 * Tue May 21 2013 Nalin Dahyabhai <nalin@redhat.com> 1.11.2-6
 - pull in upstream fix to start treating a KRB5CCNAME value that begins
   with DIR:: the same as it would a DIR: value with just one ccache file
-  in it (RT#7172, #965574)
+  in it (RT#7172, rhbz#965574)
 
 * Mon May 13 2013 Nalin Dahyabhai <nalin@redhat.com> 1.11.2-5
 - pull up fix for UDP ping-pong flaw in kpasswd service (CVE-2002-2443,
-  #962531,#962534)
+  rhbz#962531,rhbz#962534)
 
 * Mon Apr 29 2013 Nathaniel McCallum <npmccallum@redhat.com> 1.11.2-4
 - Update otp patches
@@ -2281,11 +2281,11 @@ exit 0
   - drop pulled in patch for RT#7586, included in this release
   - drop pulled in patch for RT#7592, included in this release
 - pull in fix for keeping track of the message type when parsing FAST requests
-  in the KDC (RT#7605, #951843) (also #951965)
+  in the KDC (RT#7605, rhbz#951843) (also rhbz#951965)
 
 * Fri Apr 12 2013 Nalin Dahyabhai <nalin@redhat.com> 1.11.1-9
 - move the compiled-in default ccache location from the previous default of
-  FILE:/tmp/krb5cc_%%{uid} to DIR:/run/user/%%{uid}/krb5cc (part of #949588)
+  FILE:/tmp/krb5cc_%%{uid} to DIR:/run/user/%%{uid}/krb5cc (part of rhbz#949588)
 
 * Tue Apr 09 2013 Nathaniel McCallum <npmccallum@redhat.com> - 1.11.1-8
 - Update otp backport patches (libk5radius => libkrad)
@@ -2306,8 +2306,8 @@ exit 0
 * Tue Mar 26 2013 Nalin Dahyabhai <nalin@redhat.com> 1.11.1-5
 - pull up Simo's patch to mark the correct mechanism on imported GSSAPI
   contexts (RT#7592)
-- go back to using reconf to run autoconf and autoheader (part of #925640)
-- add temporary patch to use newer config.guess/config.sub (more of #925640)
+- go back to using reconf to run autoconf and autoheader (part of rhbz#925640)
+- add temporary patch to use newer config.guess/config.sub (more of rhbz#925640)
 
 * Mon Mar 18 2013 Nalin Dahyabhai <nalin@redhat.com>
 - fix a version comparison to expect newer texlive build requirements when
@@ -2318,12 +2318,12 @@ exit 0
 - Add otp support
 
 * Thu Feb 28 2013 Nalin Dahyabhai <nalin@redhat.com> 1.11.1-3
-- fix a memory leak when acquiring credentials using a keytab (RT#7586, #911110)
+- fix a memory leak when acquiring credentials using a keytab (RT#7586, rhbz#911110)
 
 * Wed Feb 27 2013 Nalin Dahyabhai <nalin@redhat.com> 1.11.1-2
-- prebuild PDF docs to reduce multilib differences (internal tooling, #884065)
+- prebuild PDF docs to reduce multilib differences (internal tooling, rhbz#884065)
 - drop the kerberos-iv portreserve file, and drop the rest on systemd systems
-- escape uses of macros in comments (more of #884065)
+- escape uses of macros in comments (more of rhbz#884065)
 
 * Mon Feb 25 2013 Nalin Dahyabhai <nalin@redhat.com> 1.11.1-1
 - update to 1.11.1
@@ -2331,7 +2331,7 @@ exit 0
     wrapper in the client transmit functions
 
 * Fri Feb  8 2013 Nalin Dahyabhai <nalin@redhat.com> 1.11-2
-- set "rdns = false" in the default krb5.conf (#908323,#908324)
+- set "rdns = false" in the default krb5.conf (rhbz#908323,rhbz#908324)
 
 * Tue Dec 18 2012 Nalin Dahyabhai <nalin@redhat.com> 1.11-1
 - update to 1.11 release
@@ -2341,7 +2341,7 @@ exit 0
 
 * Thu Dec 13 2012 Nalin Dahyabhai <nalin@redhat.com>
 - when building with our bundled copy of libverto, package it in with -libs
-  rather than with -server (#886049)
+  rather than with -server (rhbz#886049)
 
 * Wed Nov 21 2012 Nalin Dahyabhai <nalin@redhat.com> 1.11-0.beta1.0
 - update to 1.11 beta 1
@@ -2389,27 +2389,27 @@ exit 0
   %%{?_rawbuild} builds (zmraz)
 
 * Tue Sep 25 2012 Nalin Dahyabhai <nalin@redhat.com> 1.10.3-6
-- actually pull up the patch for RT#7063, and not some other ticket (#773496)
+- actually pull up the patch for RT#7063, and not some other ticket (rhbz#773496)
 
 * Mon Sep 10 2012 Nalin Dahyabhai <nalin@redhat.com> 1.10.3-5
 - add patch based on one from Filip Krska to not call poll() with a negative
-  timeout when the caller's intent is for us to just stop calling it (#838548)
+  timeout when the caller's intent is for us to just stop calling it (rhbz#838548)
 
 * Fri Sep  7 2012 Nalin Dahyabhai <nalin@redhat.com>
 - on EL6, conflict with libsmbclient before 3.5.10-124, which is when it
-  stopped linking with a symbol which we no longer export (#771687)
+  stopped linking with a symbol which we no longer export (rhbz#771687)
 - pull up patch for RT#7063, in which not noticing a prompt for a long
   time throws the client library's idea of the time difference between it
-  and the KDC really far out of whack (#773496)
+  and the KDC really far out of whack (rhbz#773496)
 - add a backport of more patches to set the client's list of supported enctypes
   when using a keytab to be the list of types of keys in the keytab, plus the
   list of other types the client supports but for which it doesn't have keys,
   in that order, so that KDCs have a better chance of being able to issue
-  tickets with session keys of types that the client can use (#837855)
+  tickets with session keys of types that the client can use (rhbz#837855)
 
 * Thu Sep  6 2012 Nalin Dahyabhai <nalin@redhat.com> 1.10.3-4
 - cut down the number of times we load SELinux labeling configuration from
-  a minimum of two times to actually one (more of #845125)
+  a minimum of two times to actually one (more of rhbz#845125)
 
 * Thu Aug 30 2012 Nalin Dahyabhai <nalin@redhat.com> 1.10.3-3
 - backport patch to disable replay detection in krb5_verify_init_creds()
@@ -2427,7 +2427,7 @@ exit 0
 * Thu Aug  2 2012 Nalin Dahyabhai <nalin@redhat.com> 1.10.2-7
 - selinux: hang on to the list of selinux contexts, freeing and reloading
   it only when the file we read it from is modified, freeing it when the
-  shared library is being unloaded (#845125)
+  shared library is being unloaded (rhbz#845125)
 
 * Thu Aug  2 2012 Nalin Dahyabhai <nalin@redhat.com> 1.10.2-6
 - go back to not messing with library file paths on Fedora 17: it breaks
@@ -2437,7 +2437,7 @@ exit 0
 * Tue Jul 31 2012 Nalin Dahyabhai <nalin@redhat.com> 1.10.2-5
 - add upstream patch to fix freeing an uninitialized pointer and dereferencing
   another uninitialized pointer in the KDC (MITKRB5-SA-2012-001, CVE-2012-1014
-  and CVE-2012-1015, #844779 and #844777)
+  and CVE-2012-1015, rhbz#844779 and rhbz#844777)
 - fix a thinko in whether or not we mess around with devel .so symlinks on
   systems without a separate /usr (sbose)
 
@@ -2463,7 +2463,7 @@ exit 0
 - add a backport of Stef's patch to set the client's list of supported
   enctypes to match the types of keys that we have when we are using a
   keytab to try to get initial credentials, so that a KDC won't send us
-  an AS reply that we can't encrypt (RT#2131, #748528)
+  an AS reply that we can't encrypt (RT#2131, rhbz#748528)
 - don't shuffle around any shared libraries on releases with no-separate-/usr,
   since /usr/lib is the same place as /lib
 - add explicit buildrequires: on 'hostname', for the tests, on systems where
@@ -2472,15 +2472,15 @@ exit 0
 
 * Mon May  7 2012 Nalin Dahyabhai <nalin@redhat.com>
 - skip the setfscreatecon() if fopen() is passed "rb" as the open mode (part
-  of #819115)
+  of rhbz#819115)
 
 * Tue May  1 2012 Nalin Dahyabhai <nalin@redhat.com> 1.10.1-3
 - have -server require /usr/share/dict/words, which we set as the default
-  dict_file in kdc.conf (#817089)
+  dict_file in kdc.conf (rhbz#817089)
 
 * Tue Mar 20 2012 Nalin Dahyabhai <nalin@redhat.com> 1.10.1-2
-- change back dns_lookup_kdc to the default setting (Stef Walter, #805318)
-- comment out example.com examples in default krb5.conf (Stef Walter, #805320)
+- change back dns_lookup_kdc to the default setting (Stef Walter, rhbz#805318)
+- comment out example.com examples in default krb5.conf (Stef Walter, rhbz#805320)
 
 * Fri Mar  9 2012 Nalin Dahyabhai <nalin@redhat.com> 1.10.1-1
 - update to 1.10.1
@@ -2491,7 +2491,7 @@ exit 0
 * Wed Mar  7 2012 Nalin Dahyabhai <nalin@redhat.com> 1.10-5
 - when removing -workstation, remove our files from the info index while
   the file is still there, in %%preun, rather than %%postun, and use the
-  compressed file's name (#801035)
+  compressed file's name (rhbz#801035)
 
 * Tue Feb 21 2012 Nathaniel McCallum <nathaniel@natemccallum.com> - 1.10-4
 - Fix string RPC ACLs (RT#7093); CVE-2012-1012
@@ -2501,7 +2501,7 @@ exit 0
 
 * Mon Jan 30 2012 Nalin Dahyabhai <nalin@redhat.com> 1.10-2
 - add patch to accept keytab entries with vno==0 as matches when we're
-  searching for an entry with a specific name/kvno (#230382/#782211,RT#3349)
+  searching for an entry with a specific name/kvno (rhbz#230382/rhbz#782211,RT#3349)
 
 * Mon Jan 30 2012 Nalin Dahyabhai <nalin@redhat.com> 1.10-1
 - update to 1.10 final
@@ -2526,21 +2526,21 @@ exit 0
 
 * Tue Dec 13 2011 Nalin Dahyabhai <nalin@redhat.com> 1.10-0.alpha1.3
 - pull in patch for RT#7046: tag a ccache containing credentials obtained via
-  S4U2Proxy with the principal name of the proxying principal (part of #761317)
+  S4U2Proxy with the principal name of the proxying principal (part of rhbz#761317)
   so that the default principal name can be set to that of the client for which
   it is proxying, which results in the ccache looking more normal to consumers
   of the ccache that don't care that there's proxying going on
 - pull in patch for RT#7047: allow tickets obtained via S4U2Proxy to be cached
-  (more of #761317)
+  (more of rhbz#761317)
 - pull in patch for RT#7048: allow PAC verification to only bother trying to
-  verify the signature with keys that it's given (still more of #761317)
+  verify the signature with keys that it's given (still more of rhbz#761317)
 
 * Tue Dec  6 2011 Nalin Dahyabhai <nalin@redhat.com> 1.10-0.alpha1.2
 - apply upstream patch to fix a null pointer dereference when processing
-  TGS requests (CVE-2011-1530, #753748)
+  TGS requests (CVE-2011-1530, rhbz#753748)
 
 * Wed Nov 30 2011 Nalin Dahyabhai <nalin@redhat.com> 1.10-0.alpha1.1
-- correct a bug in the fix for #754001 so that the file creation context is
+- correct a bug in the fix for rhbz#754001 so that the file creation context is
   consistently reset
 
 * Tue Nov 15 2011 Nalin Dahyabhai <nalin@redhat.com> 1.10-0.alpha1.0
@@ -2555,27 +2555,27 @@ exit 0
   should be able to run inside of the build system without issue
 
 * Wed Oct 26 2011 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1.9.1-19
-- Rebuilt for glibc bug#747377
+- Rebuilt for glibc bugrhbz#747377
 
 * Tue Oct 18 2011 Nalin Dahyabhai <nalin@redhat.com> 1.9.1-18
 - apply upstream patch to fix a null pointer dereference with the LDAP kdb
-  backend (CVE-2011-1527, #744125), an assertion failure with multiple kdb
+  backend (CVE-2011-1527, rhbz#744125), an assertion failure with multiple kdb
   backends (CVE-2011-1528), and a null pointer dereference with multiple kdb
-  backends (CVE-2011-1529) (#737711)
+  backends (CVE-2011-1529) (rhbz#737711)
 
 * Thu Oct 13 2011 Nalin Dahyabhai <nalin@redhat.com> 1.9.1-17
 - pull in patch from trunk to rename krb5int_pac_sign() to krb5_pac_sign() and
-  make it public (#745533)
+  make it public (rhbz#745533)
 
 * Fri Oct  7 2011 Nalin Dahyabhai <nalin@redhat.com> 1.9.1-16
-- kadmin.service: fix #723723 again
+- kadmin.service: fix rhbz#723723 again
 - kadmin.service,krb5kdc.service: remove optional use of $KRB5REALM in command
   lines, because systemd parsing doesn't handle alternate value shell variable
   syntax
 - kprop.service: add missing Type=forking so that systemd doesn't assume simple
 - kprop.service: expect the ACL configuration to be there, not absent
 - handle a harder-to-trigger assertion failure that starts cropping up when we
-  exit the transmit loop on time (#739853)
+  exit the transmit loop on time (rhbz#739853)
 
 * Sun Oct  2 2011 Tom Callaway <spot@fedoraproject.org> 1.9.1-15
 - hardcode pid file as option in krb5kdc.service
@@ -2588,50 +2588,50 @@ exit 0
 
 * Tue Sep  6 2011 Nalin Dahyabhai <nalin@redhat.com> 1.9.1-12
 - pull in upstream patch for RT#6952, confusion following referrals for
-  cross-realm auth (#734341)
+  cross-realm auth (rhbz#734341)
 - pull in build-time deps for the tests
 
 * Thu Sep  1 2011 Nalin Dahyabhai <nalin@redhat.com> 1.9.1-11
-- switch to the upstream patch for #727829
+- switch to the upstream patch for rhbz#727829
 
 * Wed Aug 31 2011 Nalin Dahyabhai <nalin@redhat.com> 1.9.1-10
 - handle an assertion failure that starts cropping up when the patch for
-  using poll (#701446) meets servers that aren't running KDCs or against
-  which the connection fails for other reasons (#727829, #734172)
+  using poll (rhbz#701446) meets servers that aren't running KDCs or against
+  which the connection fails for other reasons (rhbz#727829, rhbz#734172)
 
 * Mon Aug  8 2011 Nalin Dahyabhai <nalin@redhat.com> 1.9.1-9
 - override the default build rules to not delete temporary y.tab.c files,
   so that they can be packaged, allowing debuginfo files which point to them
-  do so usefully (#729044)
+  do so usefully (rhbz#729044)
 
 * Fri Jul 22 2011 Nalin Dahyabhai <nalin@redhat.com> 1.9.1-8
-- build shared libraries with partial RELRO support (#723995)
+- build shared libraries with partial RELRO support (rhbz#723995)
 - filter out potentially multiple instances of -Wl,-z,relro from krb5-config
   output, now that it's in the buildroot's default LDFLAGS
 - pull in a patch to fix losing track of the replay cache FD, from SVN by
   way of Kevin Coffman
 
 * Wed Jul 20 2011 Nalin Dahyabhai <nalin@redhat.com> 1.9.1-7
-- kadmind.init: drop the attempt to detect no-database-present errors (#723723),
+- kadmind.init: drop the attempt to detect no-database-present errors (rhbz#723723),
   which is too fragile in cases where the database has been manually moved or
   is accessed through another kdb plugin
 
 * Tue Jul 19 2011 Nalin Dahyabhai <nalin@redhat.com> 1.9.1-6
 - backport fixes to teach libkrb5 to use descriptors higher than FD_SETSIZE
-  to talk to a KDC by using poll() if it's detected at compile-time (#701446,
+  to talk to a KDC by using poll() if it's detected at compile-time (rhbz#701446,
   RT#6905)
 
 * Thu Jun 23 2011 Nalin Dahyabhai <nalin@redhat.com> 1.9.1-5
 - pull a fix from SVN to try to avoid triggering a PTR lookup in getaddrinfo()
   during krb5_sname_to_principal(), and to let getaddrinfo() decide whether or
   not to ask for an IPv6 address based on the set of configured interfaces
-  (#717378, RT#6922)
+  (rhbz#717378, RT#6922)
 - pull a fix from SVN to use AI_ADDRCONFIG more often (RT#6923)
 
 * Mon Jun 20 2011 Nalin Dahyabhai <nalin@redhat.com> 1.9.1-4
 - apply upstream patch by way of Burt Holzman to fall back to a non-referral
   method in cases where we might be derailed by a KDC that rejects the
-  canonicalize option (for example, those from the RHEL 2.1 or 3 era) (#715074)
+  canonicalize option (for example, those from the RHEL 2.1 or 3 era) (rhbz#715074)
 
 * Tue Jun 14 2011 Nalin Dahyabhai <nalin@redhat.com> 1.9.1-3
 - pull a fix from SVN to get libgssrpc clients (e.g. kadmin) authenticating
@@ -2639,13 +2639,13 @@ exit 0
 
 * Tue Jun 14 2011 Nalin Dahyabhai <nalin@redhat.com>
 - incorporate a fix to teach the file labeling bits about when replay caches
-  are expunged (#576093)
+  are expunged (rhbz#576093)
 
 * Thu May 26 2011 Nalin Dahyabhai <nalin@redhat.com>
-- switch to the upstream patch for #707145
+- switch to the upstream patch for rhbz#707145
 
 * Wed May 25 2011 Nalin Dahyabhai <nalin@redhat.com> 1.9.1-2
-- klist: don't trip over referral entries when invoked with -s (#707145,
+- klist: don't trip over referral entries when invoked with -s (rhbz#707145,
   RT#6915)
 
 * Fri May  6 2011 Nalin Dahyabhai <nalin@redhat.com>
@@ -2658,26 +2658,26 @@ exit 0
     CVE-2011-0282, CVE-2011-0283, CVE-2011-0284, CVE-2011-0285
 
 * Wed Apr 13 2011 Nalin Dahyabhai <nalin@redhat.com> 1.9-9
-- kadmind: add upstream patch to fix free() on an invalid pointer (#696343,
+- kadmind: add upstream patch to fix free() on an invalid pointer (rhbz#696343,
   MITKRB5-SA-2011-004, CVE-2011-0285)
 
 * Mon Apr  4 2011 Nalin Dahyabhai <nalin@redhat.com>
 - don't discard the error code from an error message received in response
-  to a change-password request (#658871, RT#6893)
+  to a change-password request (rhbz#658871, RT#6893)
 
 * Fri Apr  1 2011 Nalin Dahyabhai <nalin@redhat.com>
 - override INSTALL_SETUID at build-time so that ksu is installed into
-  the buildroot with the right permissions (part of #225974)
+  the buildroot with the right permissions (part of rhbz#225974)
 
 * Fri Mar 18 2011 Nalin Dahyabhai <nalin@redhat.com> 1.9-8
 - backport change from SVN to fix a computed-value-not-used warning in
-  kpropd (#684065)
+  kpropd (rhbz#684065)
 
 * Tue Mar 15 2011 Nalin Dahyabhai <nalin@redhat.com> 1.9-7
 - turn off NSS as the backend for libk5crypto for now to work around its
-  DES string2key not working (#679012)
+  DES string2key not working (rhbz#679012)
 - add revised upstream patch to fix double-free in KDC while returning
-  typed-data with errors (MITKRB5-SA-2011-003, CVE-2011-0284, #674325)
+  typed-data with errors (MITKRB5-SA-2011-003, CVE-2011-0284, rhbz#674325)
 
 * Thu Feb 17 2011 Nalin Dahyabhai <nalin@redhat.com>
 - throw in a not-applied-by-default patch to try to make pkinit debugging
@@ -2690,14 +2690,14 @@ exit 0
 * Wed Feb  9 2011 Nalin Dahyabhai <nalin@redhat.com> 1.9-5
 - krb5kdc init script: prototype some changes to do a quick spot-check
   of the TGS and kadmind keys and warn if there aren't any non-weak keys
-  on file for them (to flush out parts of #651466)
+  on file for them (to flush out parts of rhbz#651466)
 
 * Tue Feb  8 2011 Nalin Dahyabhai <nalin@redhat.com> 1.9-4
 - add upstream patches to fix standalone kpropd exiting if the per-client
   child process exits with an error (MITKRB5-SA-2011-001), a hang or crash
   in the KDC when using the LDAP kdb backend, and an uninitialized pointer
-  use in the KDC (MITKRB5-SA-2011-002) (CVE-2010-4022, #664009,
-  CVE-2011-0281, #668719, CVE-2011-0282, #668726, CVE-2011-0283, #676126)
+  use in the KDC (MITKRB5-SA-2011-002) (CVE-2010-4022, rhbz#664009,
+  CVE-2011-0281, rhbz#668719, CVE-2011-0282, rhbz#668726, CVE-2011-0283, rhbz#676126)
 
 * Mon Feb 07 2011 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1.9-3
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_15_Mass_Rebuild
@@ -2708,11 +2708,11 @@ exit 0
 
 * Tue Feb  1 2011 Nalin Dahyabhai <nalin@redhat.com>
 - properly advertise that the kpropd init script now supports force-reload
-  (Zbysek Mraz, #630587)
+  (Zbysek Mraz, rhbz#630587)
 
 * Wed Jan 26 2011 Nalin Dahyabhai <nalin@redhat.com> 1.9-2
 - pkinit: when verifying signed data, use the CMS APIs for better
-  interoperability (#636985, RT#6851)
+  interoperability (rhbz#636985, RT#6851)
 
 * Wed Dec 22 2010 Nalin Dahyabhai <nalin@redhat.com> 1.9-1
 - update to 1.9 final
@@ -2732,37 +2732,37 @@ exit 0
 * Fri Nov  5 2010 Nalin Dahyabhai <nalin@redhat.com> 1.9-0.beta1.0
 - start moving to 1.9 with beta 1
   - drop patches for RT#5755, RT#6762, RT#6774, RT#6775
-  - drop no-longer-needed backport patch for #539423
+  - drop no-longer-needed backport patch for rhbz#539423
   - drop no-longer-needed patch for CVE-2010-1322
 - if WITH_NSS is set, built with --with-crypto-impl=nss (requires NSS 3.12.9)
 
 * Tue Oct  5 2010 Nalin Dahyabhai <nalin@redhat.com> 1.8.3-8
 - incorporate upstream patch to fix uninitialized pointer crash in the KDC's
-  authorization data handling (CVE-2010-1322, #636335)
+  authorization data handling (CVE-2010-1322, rhbz#636335)
 
 * Mon Oct  4 2010 Nalin Dahyabhai <nalin@redhat.com> 1.8.3-7
 - rebuild
 
 * Mon Oct  4 2010 Nalin Dahyabhai <nalin@redhat.com> 1.8.3-6
 - pull down patches from trunk to implement k5login_authoritative and
-  k5login_directory settings for krb5.conf (#539423)
+  k5login_directory settings for krb5.conf (rhbz#539423)
 
 * Wed Sep 29 2010 jkeating - 1.8.3-5
 - Rebuilt for gcc bug 634757
 
 * Wed Sep 15 2010 Nalin Dahyabhai <nalin@redhat.com> 1.8.3-4
 - fix reading of keyUsage extensions when attempting to select pkinit client
-  certs (part of #629022, RT#6775)
+  certs (part of rhbz#629022, RT#6775)
 - fix selection of pkinit client certs when one or more don't include a
-  subjectAltName extension (part of #629022, RT#6774)
+  subjectAltName extension (part of rhbz#629022, RT#6774)
 
 * Fri Sep  3 2010 Nalin Dahyabhai <nalin@redhat.com> 1.8.3-3
 - build with -fstack-protector-all instead of the default -fstack-protector,
-  so that we add checking to more functions (i.e., all of them) (#629950)
-- also link binaries with -Wl,-z,relro,-z,now (part of #629950)
+  so that we add checking to more functions (i.e., all of them) (rhbz#629950)
+- also link binaries with -Wl,-z,relro,-z,now (part of rhbz#629950)
 
 * Tue Aug 24 2010 Nalin Dahyabhai <nalin@redhat.com> 1.8.3-2
-- fix a logic bug in computing key expiration times (RT#6762, #627022)
+- fix a logic bug in computing key expiration times (RT#6762, rhbz#627022)
 
 * Wed Aug  4 2010 Nalin Dahyabhai <nalin@redhat.com> 1.8.3-1
 - update to 1.8.3
@@ -2772,12 +2772,12 @@ exit 0
 
 * Wed Jul  7 2010 Nalin Dahyabhai <nalin@redhat.com> 1.8.2-3
 - tell krb5kdc and kadmind to create pid files, since they can
-- add logrotate configuration files for krb5kdc and kadmind (#462658)
+- add logrotate configuration files for krb5kdc and kadmind (rhbz#462658)
 - fix parsing of the pidfile option in the KDC (upstream #6750)
 
 * Mon Jun 21 2010 Nalin Dahyabhai <nalin@redhat.com> 1.8.2-2
 - libgssapi: pull in patch from svn to stop returning context-expired errors
-  when the ticket which was used to set up the context expires (#605366,
+  when the ticket which was used to set up the context expires (rhbz#605366,
   upstream #6739)
 
 * Mon Jun 21 2010 Nalin Dahyabhai <nalin@redhat.com>
@@ -2793,8 +2793,8 @@ exit 0
 
 * Thu May 27 2010 Nalin Dahyabhai <nalin@redhat.com>
 - ksu: move session management calls to before we drop privileges, like
-  su does (#596887), and don't skip the PAM account check for root or the
-  same user (more of #540769)
+  su does (rhbz#596887), and don't skip the PAM account check for root or the
+  same user (more of rhbz#540769)
 
 * Mon May 24 2010 Nalin Dahyabhai <nalin@redhat.com> 1.8.1-6
 - make krb5-server-ldap also depend on the same version-release of krb5-libs,
@@ -2807,20 +2807,20 @@ exit 0
 
 * Tue May 18 2010 Nalin Dahyabhai <nalin@redhat.com> 1.8.1-5
 - add patch to correct GSSAPI library null pointer dereference which could be
-  triggered by malformed client requests (CVE-2010-1321, #582466)
+  triggered by malformed client requests (CVE-2010-1321, rhbz#582466)
 
 * Tue May  4 2010 Nalin Dahyabhai <nalin@redhat.com> 1.8.1-4
-- fix output of kprop's init script's "status" and "reload" commands (#588222)
+- fix output of kprop's init script's "status" and "reload" commands (rhbz#588222)
 
 * Tue Apr 20 2010 Nalin Dahyabhai <nalin@redhat.com> 1.8.1-3
-- incorporate patch to fix double-free in the KDC (CVE-2010-1320, #581922)
+- incorporate patch to fix double-free in the KDC (CVE-2010-1320, rhbz#581922)
 
 * Wed Apr 14 2010 Nalin Dahyabhai <nalin@redhat.com> 1.8.1-2
 - fix a typo in kerberos.ldif
 
 * Fri Apr  9 2010 Nalin Dahyabhai <nalin@redhat.com> 1.8.1-1
 - update to 1.8.1
-  - no longer need patches for #555875, #561174, #563431, RT#6661, CVE-2010-0628
+  - no longer need patches for rhbz#555875, rhbz#561174, rhbz#563431, RT#6661, CVE-2010-0628
 - replace buildrequires on tetex-latex with one on texlive-latex, which is
   the package that provides it now
 
@@ -2830,21 +2830,21 @@ exit 0
 * Thu Apr  8 2010 Nalin Dahyabhai <nalin@redhat.com>
 - drop patch to suppress key expiration warnings sent from the KDC in
   the last-req field, as the KDC is expected to just be configured to either
-  send them or not as a particular key approaches expiration (#556495)
+  send them or not as a particular key approaches expiration (rhbz#556495)
 
 * Tue Mar 23 2010 Nalin Dahyabhai <nalin@redhat.com> - 1.8-5
-- add upstream fix for denial-of-service in SPNEGO (CVE-2010-0628, #576325)
+- add upstream fix for denial-of-service in SPNEGO (CVE-2010-0628, rhbz#576325)
 - kdc.conf: no more need to suggest keeping keys with v4-compatible salting
 
 * Fri Mar 19 2010 Nalin Dahyabhai <nalin@redhat.com> - 1.8-4
 - remove the krb5-appl bits (the -workstation-clients and -workstation-servers
   subpackages) now that krb5-appl is its own package
-- replace our patch for #563431 (kpasswd doesn't fall back to guessing your
+- replace our patch for rhbz#563431 (kpasswd doesn't fall back to guessing your
   principal name using your user name if you don't have a ccache) with the
   one upstream uses
 
 * Fri Mar 12 2010 Nalin Dahyabhai <nalin@redhat.com> - 1.8-3
-- add documentation for the ticket_lifetime option (#561174)
+- add documentation for the ticket_lifetime option (rhbz#561174)
 
 * Mon Mar  8 2010 Nalin Dahyabhai <nalin@redhat.com> - 1.8-2
 - pull up patch to get the client libraries to correctly perform password
@@ -2864,10 +2864,10 @@ exit 0
 - fix a null pointer dereference and crash introduced in our PAM patch that
   would happen if ftpd was given the name of a user who wasn't known to the
   local system, limited to being triggerable by gssapi-authenticated clients by
-  the default xinetd config (Olivier Fourdan, #569472)
+  the default xinetd config (Olivier Fourdan, rhbz#569472)
 
 * Tue Mar  2 2010 Nalin Dahyabhai <nalin@redhat.com> - 1.7.1-5
-- fix a regression (not labeling a kdb database lock file correctly, #569902)
+- fix a regression (not labeling a kdb database lock file correctly, rhbz#569902)
 
 * Thu Feb 25 2010 Nalin Dahyabhai <nalin@redhat.com> - 1.7.1-4
 - move the package changelog to the end to match the usual style (jdennis)
@@ -2877,15 +2877,15 @@ exit 0
 
 * Wed Feb 17 2010 Nalin Dahyabhai <nalin@redhat.com> - 1.7.1-3
 - pull up the change to make kpasswd's behavior better match the docs
-  when there's no ccache (#563431)
+  when there's no ccache (rhbz#563431)
 
 * Tue Feb 16 2010 Nalin Dahyabhai <nalin@redhat.com> - 1.7.1-2
 - apply patch from upstream to fix KDC denial of service (CVE-2010-0283,
-  #566002)
+  rhbz#566002)
 
 * Wed Feb  3 2010 Nalin Dahyabhai <nalin@redhat.com> - 1.7.1-1
 - update to 1.7.1
-  - don't trip AD lockout on wrong password (#542687, #554351)
+  - don't trip AD lockout on wrong password (rhbz#542687, rhbz#554351)
   - incorporates fixes for CVE-2009-4212 and CVE-2009-3295
   - fixes gss_krb5_copy_ccache() when SPNEGO is used
 - move sim_client/sim_server, gss-client/gss-server, uuclient/uuserver to
@@ -2895,7 +2895,7 @@ exit 0
   depends on -workstation which also includes them
 
 * Mon Jan 25 2010 Nalin Dahyabhai <nalin@redhat.com> - 1.7-23
-- tighten up default permissions on kdc.conf and kadm5.acl (#558343)
+- tighten up default permissions on kdc.conf and kadm5.acl (rhbz#558343)
 
 * Fri Jan 22 2010 Nalin Dahyabhai <nalin@redhat.com> - 1.7-22
 - use portreserve correctly -- portrelease takes the basename of the file
@@ -2904,47 +2904,47 @@ exit 0
 * Mon Jan 18 2010 Nalin Dahyabhai <nalin@redhat.com> - 1.7-21
 - suppress warnings of impending password expiration if expiration is more than
   seven days away when the KDC reports it via the last-req field, just as we
-  already do when it reports expiration via the key-expiration field (#556495)
+  already do when it reports expiration via the key-expiration field (rhbz#556495)
 - link with libtinfo rather than libncurses, when we can, in future RHEL
 
 * Fri Jan 15 2010 Nalin Dahyabhai <nalin@redhat.com> - 1.7-20
 - krb5_get_init_creds_password: check opte->flags instead of options->flags
-  when checking whether or not we get to use the prompter callback (#555875)
+  when checking whether or not we get to use the prompter callback (rhbz#555875)
 
 * Thu Jan 14 2010 Nalin Dahyabhai <nalin@redhat.com> - 1.7-19
 - use portreserve to make sure the KDC can always bind to the kerberos-iv
   port, kpropd can always bind to the krb5_prop port, and that kadmind can
-  always bind to the kerberos-adm port (#555279)
+  always bind to the kerberos-adm port (rhbz#555279)
 - correct inadvertent use of macros in the changelog (rpmlint)
 
 * Tue Jan 12 2010 Nalin Dahyabhai <nalin@redhat.com> - 1.7-18
 - add upstream patch for integer underflow during AES and RC4 decryption
-  (CVE-2009-4212), via Tom Yu (#545015)
+  (CVE-2009-4212), via Tom Yu (rhbz#545015)
 
 * Wed Jan  6 2010 Nalin Dahyabhai <nalin@redhat.com> - 1.7-17
 - put the conditional back for the -devel subpackage
-- back down to the earlier version of the patch for #551764; the backported
+- back down to the earlier version of the patch for rhbz#551764; the backported
   alternate version was incomplete
 
 * Tue Jan  5 2010 Nalin Dahyabhai <nalin@redhat.com> - 1.7-16
 - use %%global instead of %%define
 - pull up proposed patch for creating previously-not-there lock files for
-  kdb databases when 'kdb5_util' is called to 'load' (#551764)
+  kdb databases when 'kdb5_util' is called to 'load' (rhbz#551764)
 
 * Mon Jan  4 2010 Dennis Gregorovic <dgregor@redhat.com>
 - fix conditional for future RHEL
 
 * Mon Jan  4 2010 Nalin Dahyabhai <nalin@redhat.com> - 1.7-15
 - add upstream patch for KDC crash during referral processing (CVE-2009-3295),
-  via Tom Yu (#545002)
+  via Tom Yu (rhbz#545002)
 
 * Mon Dec 21 2009 Nalin Dahyabhai <nalin@redhat.com> - 1.7-14
-- refresh patch for #542868 from trunk
+- refresh patch for rhbz#542868 from trunk
 
 * Thu Dec 10 2009 Nalin Dahyabhai <nalin@redhat.com>
 - move man pages that live in the -libs subpackage into the regular
   %%{_mandir} tree where they'll still be found if that package is the
-  only one installed (#529319)
+  only one installed (rhbz#529319)
 
 * Wed Dec  9 2009 Nalin Dahyabhai <nalin@redhat.com> - 1.7-13
 - and put it back in
@@ -2953,14 +2953,14 @@ exit 0
 - back that last change out
 
 * Tue Dec  8 2009 Nalin Dahyabhai <nalin@redhat.com> - 1.7-12
-- try to make gss_krb5_copy_ccache() work correctly for spnego (#542868)
+- try to make gss_krb5_copy_ccache() work correctly for spnego (rhbz#542868)
 
 * Fri Dec  4 2009 Nalin Dahyabhai <nalin@redhat.com>
-- make krb5-config suppress CFLAGS output when called with --libs (#544391)
+- make krb5-config suppress CFLAGS output when called with --libs (rhbz#544391)
 
 * Thu Dec  3 2009 Nalin Dahyabhai <nalin@redhat.com> - 1.7-11
 - ksu: move account management checks to before we drop privileges, like
-  su does (#540769)
+  su does (rhbz#540769)
 - selinux: set the user part of file creation contexts to match the current
   context instead of what we looked up
 - configure with --enable-dns-for-realm instead of --enable-dns, which isn't
@@ -2968,7 +2968,7 @@ exit 0
 
 * Fri Nov 20 2009 Nalin Dahyabhai <nalin@redhat.com> - 1.7-10
 - move /etc/pam.d/ksu from krb5-workstation-servers to krb5-workstation,
-  where it's actually needed (#538703)
+  where it's actually needed (rhbz#538703)
 
 * Fri Oct 23 2009 Nalin Dahyabhai <nalin@redhat.com> - 1.7-9
 - add some conditional logic to simplify building on older Fedora releases
@@ -2979,11 +2979,11 @@ exit 0
 * Mon Sep 14 2009 Nalin Dahyabhai <nalin@redhat.com> - 1.7-8
 - specify the location of the subsystem lock when using the status() function
   in the kadmind and kpropd init scripts, so that we get the right error when
-  we're dead but have a lock file - requires initscripts 8.99 (#521772)
+  we're dead but have a lock file - requires initscripts 8.99 (rhbz#521772)
 
 * Tue Sep  8 2009 Nalin Dahyabhai <nalin@redhat.com>
 - if the init script fails to start krb5kdc/kadmind/kpropd because it's already
-  running (according to status()), return 0 (part of #521772)
+  running (according to status()), return 0 (part of rhbz#521772)
 
 * Mon Aug 24 2009 Nalin Dahyabhai <nalin@redhat.com> - 1.7-7
 - work around a compile problem with new openssl
@@ -3042,7 +3042,7 @@ exit 0
 - drop static build logic
 - drop pam_krb5-specific configuration from the default krb5.conf
 - drop only-use-v5 flags being passed to various things started by xinetd
-- put %%{krb5prefix}/sbin in everyone's path, too (#504525)
+- put %%{krb5prefix}/sbin in everyone's path, too (rhbz#504525)
 
 * Tue May 19 2009 Nalin Dahyabhai <nalin@redhat.com> 1.6.3-106
 - add an auth stack to ksu's PAM configuration so that pam_setcred() calls
@@ -3066,7 +3066,7 @@ exit 0
 - add LSB-style init script info
 
 * Fri Apr 17 2009 Nalin Dahyabhai <nalin@redhat.com>
-- explicitly run the pdf generation script using sh (part of #225974)
+- explicitly run the pdf generation script using sh (part of rhbz#225974)
 
 * Tue Apr  7 2009 Nalin Dahyabhai <nalin@redhat.com> 1.6.3-101
 - add patches for read overflow and null pointer dereference in the
@@ -3082,14 +3082,14 @@ exit 0
 - use triggeruns to properly shut down and disable krb524d when -server and
   -workstation-servers gets upgraded, because it's gone now
 - move the libraries to /%%{_lib}, but leave --libdir alone so that plugins
-  get installed and are searched for in the same locations (#473333)
+  get installed and are searched for in the same locations (rhbz#473333)
 - clean up buildprereq/prereqs, explicit mktemp requires, and add the
-  ldconfig for the -server-ldap subpackage (part of #225974)
-- escape possible macros in the changelog (part of #225974)
-- fixup summary texts (part of #225974)
-- take the execute bit off of the protocol docs (part of #225974)
-- unflag init scripts as configuration files (part of #225974)
-- make the kpropd init script treat 'reload' as 'restart' (part of #225974)
+  ldconfig for the -server-ldap subpackage (part of rhbz#225974)
+- escape possible macros in the changelog (part of rhbz#225974)
+- fixup summary texts (part of rhbz#225974)
+- take the execute bit off of the protocol docs (part of rhbz#225974)
+- unflag init scripts as configuration files (part of rhbz#225974)
+- make the kpropd init script treat 'reload' as 'restart' (part of rhbz#225974)
 
 * Tue Mar 17 2009 Nalin Dahyabhai <nalin@redhat.com> 1.6.3-19
 - libgssapi_krb5: backport fix for some errors which can occur when
@@ -3104,7 +3104,7 @@ exit 0
 * Thu Sep  4 2008 Nalin Dahyabhai <nalin@redhat.com>
 - if we successfully change the user's password during an attempt to get
   initial credentials, but then fail to get initial creds from a non-master
-  using the new password, retry against the master (#432334)
+  using the new password, retry against the master (rhbz#432334)
 
 * Tue Aug  5 2008 Tom "spot" Callaway <tcallawa@redhat.com> 1.6.3-16
 - fix license tag
@@ -3127,7 +3127,7 @@ exit 0
 
 * Wed Apr 16 2008 Nalin Dahyabhai <nalin@redhat.com> 1.6.3-13
 - ftp: use the correct local filename during mget when the 'case' option is
-  enabled (#442713)
+  enabled (rhbz#442713)
 
 * Fri Apr  4 2008 Nalin Dahyabhai <nalin@redhat.com> 1.6.3-12
 - stop exporting kadmin keys to a keytab file when kadmind starts -- the
@@ -3141,17 +3141,17 @@ exit 0
 * Tue Mar 18 2008 Nalin Dahyabhai <nalin@redhat.com> 1.6.3-10
 - add fixes from MITKRB5-SA-2008-001 for use of null or dangling pointer
   when v4 compatibility is enabled on the KDC (CVE-2008-0062, CVE-2008-0063,
-  #432620, #432621)
+  rhbz#432620, rhbz#432621)
 - add fixes from MITKRB5-SA-2008-002 for array out-of-bounds accesses when
-  high-numbered descriptors are used (CVE-2008-0947, #433596)
+  high-numbered descriptors are used (CVE-2008-0947, rhbz#433596)
 - add backport bug fix for an attempt to free non-heap memory in
-  libgssapi_krb5 (CVE-2007-5901, #415321)
+  libgssapi_krb5 (CVE-2007-5901, rhbz#415321)
 - add backport bug fix for a double-free in out-of-memory situations in
-  libgssapi_krb5 (CVE-2007-5971, #415351)
+  libgssapi_krb5 (CVE-2007-5971, rhbz#415351)
 
 * Tue Mar 18 2008 Nalin Dahyabhai <nalin@redhat.com> 1.6.3-9
 - rework file labeling patch to not depend on fragile preprocessor trickery,
-  in another attempt at fixing #428355 and friends
+  in another attempt at fixing rhbz#428355 and friends
 
 * Tue Feb 26 2008 Nalin Dahyabhai <nalin@redhat.com> 1.6.3-8
 - ftp: add patch to fix "runique on" case when globbing fixes applied
@@ -3159,12 +3159,12 @@ exit 0
 
 * Mon Feb 25 2008 Nalin Dahyabhai <nalin@redhat.com>
 - add patch to suppress double-processing of /etc/krb5.conf when we build
-  with --sysconfdir=/etc, thereby suppressing double-logging (#231147)
+  with --sysconfdir=/etc, thereby suppressing double-logging (rhbz#231147)
 
 * Mon Feb 25 2008 Nalin Dahyabhai <nalin@redhat.com>
 - remove a patch, to fix problems with interfaces which are "up" but which
   have no address assigned, which conflicted with a different fix for the same
-  problem in 1.5 (#200979)
+  problem in 1.5 (rhbz#200979)
 
 * Mon Feb 25 2008 Nalin Dahyabhai <nalin@redhat.com>
 - ftp: don't lose track of a descriptor on passive get when the server fails to
@@ -3188,22 +3188,22 @@ exit 0
 
 * Tue Feb 12 2008 Nalin Dahyabhai <nalin@redhat.com> 1.6.3-5
 - enable patch for key-expiration reporting
-- enable patch to make kpasswd fall back to TCP if UDP fails (#251206)
+- enable patch to make kpasswd fall back to TCP if UDP fails (rhbz#251206)
 - enable patch to make kpasswd use the right sequence number on retransmit
 - enable patch to allow mech-specific creds delegated under spnego to be found
   when searching for creds
 
 * Wed Jan  2 2008 Nalin Dahyabhai <nalin@redhat.com> 1.6.3-4
 - some init script cleanups
-  - drop unquoted check and silent exit for "$NETWORKING" (#426852, #242502)
+  - drop unquoted check and silent exit for "$NETWORKING" (rhbz#426852, rhbz#242502)
   - krb524: don't barf on missing database if it looks like we're using kldap,
     same as for kadmin
   - return non-zero status for missing files which cause startup to
-    fail (#242502)
+    fail (rhbz#242502)
 
 * Tue Dec 18 2007 Nalin Dahyabhai <nalin@redhat.com> 1.6.3-3
 - allocate space for the nul-terminator in the local pathname when looking up
-  a file context, and properly free a previous context (Jose Plans, #426085)
+  a file context, and properly free a previous context (Jose Plans, rhbz#426085)
 
 * Wed Dec  5 2007 Nalin Dahyabhai <nalin@redhat.com> 1.6.3-2
 - rebuild
@@ -3219,7 +3219,7 @@ exit 0
 
 * Fri Oct 12 2007 Nalin Dahyabhai <nalin@redhat.com>
 - make krb5.conf %%verify(not md5 size mtime) in addition to
-  %%config(noreplace), like /etc/nsswitch.conf (#329811)
+  %%config(noreplace), like /etc/nsswitch.conf (rhbz#329811)
 
 * Mon Oct  1 2007 Nalin Dahyabhai <nalin@redhat.com> 1.6.2-9
 - apply the fix for CVE-2007-4000 instead of the experimental patch for
@@ -3236,7 +3236,7 @@ exit 0
 
 * Thu Sep  6 2007 Nalin Dahyabhai <nalin@redhat.com> 1.6.2-6
 - incorporate updated fix for CVE-2007-3999 (CVE-2007-4743)
-- fix incorrect call to "test" in the kadmin init script (#252322,#287291)
+- fix incorrect call to "test" in the kadmin init script (rhbz#252322,rhbz#287291)
 
 * Tue Sep  4 2007 Nalin Dahyabhai <nalin@redhat.com> 1.6.2-5
 - incorporate fixes for MITKRB5-SA-2007-006 (CVE-2007-3999, CVE-2007-4000)
@@ -3249,7 +3249,7 @@ exit 0
 - rebuild
 
 * Thu Jul 26 2007 Nalin Dahyabhai <nalin@redhat.com> 1.6.2-2
-- kdc.conf: default to listening for TCP clients, too (#248415)
+- kdc.conf: default to listening for TCP clients, too (rhbz#248415)
 
 * Thu Jul 19 2007 Nalin Dahyabhai <nalin@redhat.com> 1.6.2-1
 - update to 1.6.2
@@ -3275,13 +3275,13 @@ exit 0
 - rebuild
 
 * Sun Jun 24 2007 Nalin Dahyabhai <nalin@redhat.com> 1.6.1-3
-- label all files at creation-time according to the SELinux policy (#228157)
+- label all files at creation-time according to the SELinux policy (rhbz#228157)
 
 * Fri Jun 22 2007 Nalin Dahyabhai <nalin@redhat.com>
-- perform PAM account / session management in krshd (#182195,#195922)
+- perform PAM account / session management in krshd (rhbz#182195,rhbz#195922)
 - perform PAM authentication and account / session management in ftpd
 - perform PAM authentication, account / session management, and password-
-  changing in login.krb5 (#182195,#195922)
+  changing in login.krb5 (rhbz#182195,rhbz#195922)
 
 * Fri Jun 22 2007 Nalin Dahyabhai <nalin@redhat.com>
 - preprocess kerberos.ldif into a format FDS will like better, and include
@@ -3291,7 +3291,7 @@ exit 0
 - switch man pages to being generated with the right paths in them
 - drop old, incomplete SELinux patch
 - add patch from Greg Hudson to make srvtab routines report missing-file errors
-  at same point that keytab routines do (#241805)
+  at same point that keytab routines do (rhbz#241805)
 
 * Thu May 24 2007 Nalin Dahyabhai <nalin@redhat.com> 1.6.1-2
 - pull patch from svn to undo unintentional chattiness in ftp
@@ -3312,7 +3312,7 @@ exit 0
 * Wed May 16 2007 Nalin Dahyabhai <nalin@redhat.com> 1.6-6
 - omit dependent libraries from the krb5-config --libs output, as using
   shared libraries (no more static libraries) makes them unnecessary and
-  they're not part of the libkrb5 interface (patch by Rex Dieter, #240220)
+  they're not part of the libkrb5 interface (patch by Rex Dieter, rhbz#240220)
   (strips out libkeyutils, libresolv, libdl)
 
 * Fri May  4 2007 Nalin Dahyabhai <nalin@redhat.com> 1.6-5
@@ -3327,17 +3327,17 @@ exit 0
 * Fri Apr 13 2007 Nalin Dahyabhai <nalin@redhat.com>
 - move the default acl_file, dict_file, and admin_keytab settings to
   the part of the default/example kdc.conf where they'll actually have
-  an effect (#236417)
+  an effect (rhbz#236417)
 
 * Thu Apr  5 2007 Nalin Dahyabhai <nalin@redhat.com> 1.5-24
 - merge security fixes from RHSA-2007:0095
 
 * Tue Apr  3 2007 Nalin Dahyabhai <nalin@redhat.com> 1.6-3
 - add patch to correct unauthorized access via krb5-aware telnet
-  daemon (#229782, CVE-2007-0956)
+  daemon (rhbz#229782, CVE-2007-0956)
 - add patch to fix buffer overflow in krb5kdc and kadmind
-  (#231528, CVE-2007-0957)
-- add patch to fix double-free in kadmind (#231537, CVE-2007-1216)
+  (rhbz#231528, CVE-2007-0957)
+- add patch to fix double-free in kadmind (rhbz#231537, CVE-2007-1216)
 
 * Thu Mar 22 2007 Nalin Dahyabhai <nalin@redhat.com>
 - back out buildrequires: keyutils-libs-devel for now
@@ -3353,19 +3353,19 @@ exit 0
 
 * Thu Mar 15 2007 Nalin Dahyabhai <nalin@redhat.com> 1.5-21
 - add preliminary patch to fix buffer overflow in krb5kdc and kadmind
-  (#231528, CVE-2007-0957)
-- add preliminary patch to fix double-free in kadmind (#231537, CVE-2007-1216)
+  (rhbz#231528, CVE-2007-0957)
+- add preliminary patch to fix double-free in kadmind (rhbz#231537, CVE-2007-1216)
 
 * Wed Feb 28 2007 Nalin Dahyabhai <nalin@redhat.com>
 - add patch to build semi-useful static libraries, but don't apply it unless
   we need them
 
 * Tue Feb 27 2007 Nalin Dahyabhai <nalin@redhat.com> - 1.5-20
-- temporarily back out %%post changes, fix for #143289 for security update
+- temporarily back out %%post changes, fix for rhbz#143289 for security update
 - add preliminary patch to correct unauthorized access via krb5-aware telnet
 
 * Mon Feb 19 2007 Nalin Dahyabhai <nalin@redhat.com>
-- make profile.d scriptlets mode 644 instead of 755 (part of #225974)
+- make profile.d scriptlets mode 644 instead of 755 (part of rhbz#225974)
 
 * Tue Jan 30 2007 Nalin Dahyabhai <nalin@redhat.com> 1.6-1
 - clean up quoting of command-line arguments passed to the krsh/krlogin
@@ -3373,22 +3373,22 @@ exit 0
 
 * Mon Jan 22 2007 Nalin Dahyabhai <nalin@redhat.com>
 - initial update to 1.6, pre-package-reorg
-- move workstation daemons to a new subpackage (#81836, #216356, #217301), and
-  make the new subpackage require xinetd (#211885)
+- move workstation daemons to a new subpackage (#81836, rhbz#216356, rhbz#217301), and
+  make the new subpackage require xinetd (rhbz#211885)
 
 * Mon Jan 22 2007 Nalin Dahyabhai <nalin@redhat.com> - 1.5-18
-- make use of install-info more failsafe (Ville Skyttä, #223704)
+- make use of install-info more failsafe (Ville Skyttä, rhbz#223704)
 - preserve timestamps on shell scriptlets at %%install-time
 
 * Tue Jan 16 2007 Nalin Dahyabhai <nalin@redhat.com> - 1.5-17
-- move to using pregenerated PDF docs to cure multilib conflicts (#222721)
+- move to using pregenerated PDF docs to cure multilib conflicts (rhbz#222721)
 
 * Fri Jan 12 2007 Nalin Dahyabhai <nalin@redhat.com> - 1.5-16
-- update backport of the preauth module interface (part of #194654)
+- update backport of the preauth module interface (part of rhbz#194654)
 
 * Tue Jan  9 2007 Nalin Dahyabhai <nalin@redhat.com> - 1.5-14
-- apply fixes from Tom Yu for MITKRB5-SA-2006-002 (CVE-2006-6143) (#218456)
-- apply fixes from Tom Yu for MITKRB5-SA-2006-003 (CVE-2006-6144) (#218456)
+- apply fixes from Tom Yu for MITKRB5-SA-2006-002 (CVE-2006-6143) (rhbz#218456)
+- apply fixes from Tom Yu for MITKRB5-SA-2006-003 (CVE-2006-6144) (rhbz#218456)
 
 * Wed Dec 20 2006 Nalin Dahyabhai <nalin@redhat.com> - 1.5-12
 - update backport of the preauth module interface
@@ -3406,21 +3406,21 @@ exit 0
   been applicable for a while
 
 * Wed Oct 18 2006 Nalin Dahyabhai <nalin@redhat.com> - 1.5-10
-- rename krb5.sh and krb5.csh so that they don't overlap (#210623)
+- rename krb5.sh and krb5.csh so that they don't overlap (rhbz#210623)
 - way-late application of added error info in kadmind.init (#65853)
 
 * Wed Oct 18 2006 Nalin Dahyabhai <nalin@redhat.com> - 1.5-9.pal_18695
-- add backport of in-development preauth module interface (#208643)
+- add backport of in-development preauth module interface (rhbz#208643)
 
 * Mon Oct  9 2006 Nalin Dahyabhai <nalin@redhat.com> - 1.5-9
-- provide docs in PDF format instead of as tex source (Enrico Scholz, #209943)
+- provide docs in PDF format instead of as tex source (Enrico Scholz, rhbz#209943)
 
 * Wed Oct  4 2006 Nalin Dahyabhai <nalin@redhat.com> - 1.5-8
-- add missing shebang headers to krsh and krlogin wrapper scripts (#209238)
+- add missing shebang headers to krsh and krlogin wrapper scripts (rhbz#209238)
 
 * Wed Sep  6 2006 Nalin Dahyabhai <nalin@redhat.com> - 1.5-7
 - set SS_LIB at configure-time so that libss-using apps get working readline
-  support (#197044)
+  support (rhbz#197044)
 
 * Fri Aug 18 2006 Nalin Dahyabhai <nalin@redhat.com> - 1.5-6
 - switch to the updated patch for MITKRB-SA-2006-001
@@ -3431,7 +3431,7 @@ exit 0
 * Mon Aug  7 2006 Nalin Dahyabhai <nalin@redhat.com> - 1.5-4
 - ensure that the gssapi library's been initialized before walking the
   internal mechanism list in gss_release_oid(), needed if called from
-  gss_release_name() right after a gss_import_name() (#198092)
+  gss_release_name() right after a gss_import_name() (rhbz#198092)
 
 * Tue Jul 25 2006 Nalin Dahyabhai <nalin@redhat.com> - 1.5-3
 - rebuild
@@ -3452,7 +3452,7 @@ exit 0
 - update to 1.5
 
 * Fri Jun 23 2006 Nalin Dahyabhai <nalin@redhat.com> 1.4.3-9
-- mark profile.d config files noreplace (Laurent Rineau, #196447)
+- mark profile.d config files noreplace (Laurent Rineau, rhbz#196447)
 
 * Thu Jun  8 2006 Nalin Dahyabhai <nalin@redhat.com> 1.4.3-8
 - add buildprereq for autoconf
@@ -3460,11 +3460,11 @@ exit 0
 * Mon May 22 2006 Nalin Dahyabhai <nalin@redhat.com> 1.4.3-7
 - further munge krb5-config so that 'libdir=/usr/lib' is given even on 64-bit
   architectures, to avoid multilib conflicts; other changes will conspire to
-  strip out the -L flag which uses this, so it should be harmless (#192692)
+  strip out the -L flag which uses this, so it should be harmless (rhbz#192692)
 
 * Fri Apr 28 2006 Nalin Dahyabhai <nalin@redhat.com> 1.4.3-6
 - adjust the patch which removes the use of rpath to also produce a
-  krb5-config which is okay in multilib environments (#190118)
+  krb5-config which is okay in multilib environments (rhbz#190118)
 - make the name-of-the-tempfile comment which compile_et adds to error code
   headers always list the same file to avoid conflicts on multilib installations
 - strip SIZEOF_LONG out of krb5.h so that it doesn't conflict on multilib boxes
@@ -3479,7 +3479,7 @@ exit 0
 
 * Mon Feb  6 2006 Nalin Dahyabhai <nalin@redhat.com> 1.4.3-4
 - give a little bit more information to the user when kinit gets the catch-all
-  I/O error (#180175)
+  I/O error (rhbz#180175)
 
 * Thu Jan 19 2006 Nalin Dahyabhai <nalin@redhat.com> 1.4.3-3
 - rebuild properly when pthread_mutexattr_setrobust_np() is defined but not
@@ -3493,19 +3493,19 @@ exit 0
 
 * Thu Dec  1 2005 Nalin Dahyabhai <nalin@redhat.com>
 - login: don't truncate passwords before passing them into crypt(), in
-  case they're significant (#149476)
+  case they're significant (rhbz#149476)
 
 * Thu Nov 17 2005 Nalin Dahyabhai <nalin@redhat.com> 1.4.3-1
 - update to 1.4.3
-- make ksu setuid again (#137934, others)
+- make ksu setuid again (rhbz#137934, others)
 
 * Tue Sep 13 2005 Nalin Dahyabhai <nalin@redhat.com> 1.4.2-4
 - mark %%{krb5prefix}/man so that files which are packaged within it are
-  flagged as %%doc (#168163)
+  flagged as %%doc (rhbz#168163)
 
 * Tue Sep  6 2005 Nalin Dahyabhai <nalin@redhat.com> 1.4.2-3
 - add an xinetd configuration file for encryption-only telnetd, parallelling
-  the kshell/ekshell pair (#167535)
+  the kshell/ekshell pair (rhbz#167535)
 
 * Wed Aug 31 2005 Nalin Dahyabhai <nalin@redhat.com> 1.4.2-2
 - change the default configured encryption type for KDC databases to the
@@ -3520,23 +3520,23 @@ exit 0
 
 * Wed Jun 29 2005 Nalin Dahyabhai <nalin@redhat.com> 1.4.1-5
 - fix telnet client environment variable disclosure the same way NetKit's
-  telnet client did (CAN-2005-0488) (#159305)
+  telnet client did (CAN-2005-0488) (rhbz#159305)
 - keep apps which call krb5_principal_compare() or krb5_realm_compare() with
   malformed or NULL principal structures from crashing outright (Thomas Biege)
-  (#161475)
+  (rhbz#161475)
 
 * Tue Jun 28 2005 Nalin Dahyabhai <nalin@redhat.com>
 - apply fixes from draft of MIT-KRB5-SA-2005-002 (CAN-2005-1174,CAN-2005-1175)
-  (#157104)
-- apply fixes from draft of MIT-KRB5-SA-2005-003 (CAN-2005-1689) (#159755)
+  (rhbz#157104)
+- apply fixes from draft of MIT-KRB5-SA-2005-003 (CAN-2005-1689) (rhbz#159755)
 
 * Fri Jun 24 2005 Nalin Dahyabhai <nalin@redhat.com> 1.4.1-4
 - fix double-close in keytab handling
-- add port of fixes for CAN-2004-0175 to krb5-aware rcp (#151612)
+- add port of fixes for CAN-2004-0175 to krb5-aware rcp (rhbz#151612)
 
 * Fri May 13 2005 Nalin Dahyabhai <nalin@redhat.com> 1.4.1-3
 - prevent spurious EBADF in krshd when stdin is closed by the client while
-  the command is running (#151111)
+  the command is running (rhbz#151111)
 
 * Fri May 13 2005 Martin Stransky <stransky@redhat.com> 1.4.1-2
 - add deadlock patch, removed old patch
@@ -3595,18 +3595,18 @@ exit 0
 - rebuild
 
 * Mon Nov 22 2004 Nalin Dahyabhai <nalin@redhat.com> 1.3.5-3
-- fix predictable-tempfile-name bug in krb5-send-pr (CAN-2004-0971, #140036)
+- fix predictable-tempfile-name bug in krb5-send-pr (CAN-2004-0971, rhbz#140036)
 
 * Tue Nov 16 2004 Nalin Dahyabhai <nalin@redhat.com>
 - silence compiler warning in kprop by using an in-memory ccache with a fixed
   name instead of an on-disk ccache with a name generated by tmpnam()
 
 * Tue Nov 16 2004 Nalin Dahyabhai <nalin@redhat.com> 1.3.5-2
-- fix globbing patch port mode (#139075)
+- fix globbing patch port mode (rhbz#139075)
 
 * Mon Nov  1 2004 Nalin Dahyabhai <nalin@redhat.com> 1.3.5-1
 - fix segfault in telnet due to incorrect checking of gethostbyname_r result
-  codes (#129059)
+  codes (rhbz#129059)
 
 * Fri Oct 15 2004 Nalin Dahyabhai <nalin@redhat.com>
 - remove rc4-hmac:norealm and rc4-hmac:onlyrealm from the default list of
@@ -3631,11 +3631,11 @@ exit 0
 
 * Mon Aug 23 2004 Nalin Dahyabhai <nalin@redhat.com> 1.3.4-3
 - incorporate fixes from Tom Yu for CAN-2004-0642, CAN-2004-0772
-  (MITKRB5-SA-2004-002, #130732)
-- incorporate fixes from Tom Yu for CAN-2004-0644 (MITKRB5-SA-2004-003, #130732)
+  (MITKRB5-SA-2004-002, rhbz#130732)
+- incorporate fixes from Tom Yu for CAN-2004-0644 (MITKRB5-SA-2004-003, rhbz#130732)
 
 * Tue Jul 27 2004 Nalin Dahyabhai <nalin@redhat.com> 1.3.4-2
-- fix indexing error in server sorting patch (#127336)
+- fix indexing error in server sorting patch (rhbz#127336)
 
 * Tue Jun 15 2004 Elliot Lee <sopwith@redhat.com>
 - rebuilt
@@ -3660,7 +3660,7 @@ exit 0
 - rebuild
 
 * Tue Jun  1 2004 Nalin Dahyabhai <nalin@redhat.com> 1.3.3-4
-- apply patch from MITKRB5-SA-2004-001 (#125001)
+- apply patch from MITKRB5-SA-2004-001 (rhbz#125001)
 
 * Wed May 12 2004 Thomas Woerner <twoerner@redhat.com> 1.3.3-3
 - removed rpath
@@ -3690,17 +3690,17 @@ exit 0
 
 * Mon Feb  2 2004 Nalin Dahyabhai <nalin@redhat.com> 1.3.1-9
 - remove patch to set TERM in klogind which, combined with the upstream fix in
-  1.3.1, actually produces the bug now (#114762)
+  1.3.1, actually produces the bug now (rhbz#114762)
 
 * Mon Jan 19 2004 Nalin Dahyabhai <nalin@redhat.com> 1.3.1-8
 - when iterating over lists of interfaces which are "up" from getifaddrs(),
-  skip over those which have no address (#113347)
+  skip over those which have no address (rhbz#113347)
 
 * Mon Jan 12 2004 Nalin Dahyabhai <nalin@redhat.com>
 - prefer the kdc which last replied to a request when sending requests to kdcs
 
 * Mon Nov 24 2003 Nalin Dahyabhai <nalin@redhat.com> 1.3.1-7
-- fix combination of --with-netlib and --enable-dns (#82176)
+- fix combination of --with-netlib and --enable-dns (rhbz#82176)
 
 * Tue Nov 18 2003 Nalin Dahyabhai <nalin@redhat.com>
 - remove libdefault ticket_lifetime option from the default krb5.conf, it is
@@ -3909,12 +3909,12 @@ exit 0
 * Wed Jun 27 2001 Nalin Dahyabhai <nalin@redhat.com>
 - add patch to support "ANY" keytab type (i.e.,
   "default_keytab_name = ANY:FILE:/etc/krb5.keytab,SRVTAB:/etc/srvtab"
-  patch from Gerald Britton, #42551)
-- build with -D_FILE_OFFSET_BITS=64 to get large file I/O in ftpd (#30697)
+  patch from Gerald Britton, rhbz#42551)
+- build with -D_FILE_OFFSET_BITS=64 to get large file I/O in ftpd (rhbz#30697)
 - patch ftpd to use long long and %%lld format specifiers to support the SIZE
-  command on large files (also #30697)
-- don't use LOG_AUTH as an option value when calling openlog() in ksu (#45965)
-- implement reload in krb5kdc and kadmind init scripts (#41911)
+  command on large files (also rhbz#30697)
+- don't use LOG_AUTH as an option value when calling openlog() in ksu (rhbz#45965)
+- implement reload in krb5kdc and kadmind init scripts (rhbz#41911)
 - lose the krb5server init script (not using it any more)
 
 * Sun Jun 24 2001 Elliot Lee <sopwith@redhat.com>
@@ -3927,7 +3927,7 @@ exit 0
 - rebuild in new environment
 
 * Thu Apr 26 2001 Nalin Dahyabhai <nalin@redhat.com>
-- add patch from Tom Yu to fix ftpd overflows (#37731)
+- add patch from Tom Yu to fix ftpd overflows (rhbz#37731)
 
 * Wed Apr 18 2001 Than Ngo <than@redhat.com>
 - disable optimizations on the alpha again
@@ -3951,7 +3951,7 @@ exit 0
 - own %%{_var}/kerberos
 
 * Tue Feb  6 2001 Nalin Dahyabhai <nalin@redhat.com>
-- own the directories which are created for each package (#26342)
+- own the directories which are created for each package (rhbz#26342)
 
 * Tue Jan 23 2001 Nalin Dahyabhai <nalin@redhat.com>
 - gettextize init scripts
@@ -3961,7 +3961,7 @@ exit 0
 - re-enable optimization on alphas
 
 * Mon Jan 15 2001 Nalin Dahyabhai <nalin@redhat.com>
-- fix krb5-send-pr (#18932) and move it from -server to -workstation
+- fix krb5-send-pr (rhbz#18932) and move it from -server to -workstation
 - buildprereq libtermcap-devel
 - temporariliy disable optimization on alphas
 - gettextize init scripts
@@ -3973,29 +3973,29 @@ exit 0
 - rebuild in new environment
 
 * Tue Oct 31 2000 Nalin Dahyabhai <nalin@redhat.com>
-- add bison as a BuildPrereq (#20091)
+- add bison as a BuildPrereq (rhbz#20091)
 
 * Mon Oct 30 2000 Nalin Dahyabhai <nalin@redhat.com>
-- change /usr/dict/words to /usr/share/dict/words in default kdc.conf (#20000)
+- change /usr/dict/words to /usr/share/dict/words in default kdc.conf (rhbz#20000)
 
 * Thu Oct  5 2000 Nalin Dahyabhai <nalin@redhat.com>
 - apply kpasswd bug fixes from David Wragg
 
 * Wed Oct  4 2000 Nalin Dahyabhai <nalin@redhat.com>
-- make krb5-libs obsolete the old krb5-configs package (#18351)
+- make krb5-libs obsolete the old krb5-configs package (rhbz#18351)
 - don't quit from the kpropd init script if there's no principal database so
   that you can propagate the first time without running kpropd manually
 - don't complain if /etc/ld.so.conf doesn't exist in the -libs %%post
 
 * Tue Sep 12 2000 Nalin Dahyabhai <nalin@redhat.com>
 - fix credential forwarding problem in klogind (goof in KRB5CCNAME handling)
-  (#11588)
-- fix heap corruption bug in FTP client (#14301)
+  (rhbz#11588)
+- fix heap corruption bug in FTP client (rhbz#14301)
 
 * Wed Aug 16 2000 Nalin Dahyabhai <nalin@redhat.com>
 - fix summaries and descriptions
 - switched the default transfer protocol from PORT to PASV as proposed on
-  bugzilla (#16134), and to match the regular ftp package's behavior
+  bugzilla (rhbz#16134), and to match the regular ftp package's behavior
 
 * Wed Jul 19 2000 Jeff Johnson <jbj@redhat.com>
 - rebuild to compress man pages.

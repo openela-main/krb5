@@ -1,4 +1,4 @@
-From 6aea69170c2064aaea73ad3283b6d7dd0cae47e1 Mon Sep 17 00:00:00 2001
+From c002d03cce1c82e74a0c76b323c1bf1e619d022e Mon Sep 17 00:00:00 2001
 From: Julien Rische <jrische@redhat.com>
 Date: Thu, 19 Jan 2023 19:22:27 +0100
 Subject: [PATCH] [downstream] Allow KRB5KDF, MD5, and MD4 in FIPS mode
@@ -161,5 +161,5 @@ index 5a43c3d9eb..8528ddc4a9 100644
          ret = KRB5_CRYPTO_INTERNAL;
          goto done;
 -- 
-2.38.1
+2.41.0
 

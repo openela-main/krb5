@@ -1,8 +1,7 @@
-From 813f3840c7b9f32c1d96dcd847be91fe545653eb Mon Sep 17 00:00:00 2001
+From 343e4042abdec8697d2c30eb84f70bdbd8388302 Mon Sep 17 00:00:00 2001
 From: Julien Rische <jrische@redhat.com>
 Date: Thu, 5 May 2022 17:15:12 +0200
-Subject: [PATCH] [downstream] Allow krad UDP/TCP localhost connection
- with FIPS
+Subject: [PATCH] [downstream] Allow krad UDP/TCP localhost connection with FIPS
 
 libkrad allows to establish connections only to UNIX socket in FIPS
 mode, because MD5 digest is not considered safe enough to be used for
@@ -78,5 +77,5 @@ index 929f1cef67..063f17a613 100644
          retval = ESOCKTNOSUPPORT;
          goto error;
 -- 
-2.38.1
+2.41.0
 

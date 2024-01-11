@@ -1,4 +1,4 @@
-From b8e3a859f8904d395ea0e1a7d6c49a791029711c Mon Sep 17 00:00:00 2001
+From 2dc9988da95cdd76335a00007b262272ca8c45b3 Mon Sep 17 00:00:00 2001
 From: Robbie Harwood <rharwood@redhat.com>
 Date: Fri, 9 Nov 2018 15:12:21 -0500
 Subject: [PATCH] [downstream] FIPS with PRNG and RADIUS and MD4
@@ -21,29 +21,27 @@ post7 restores MD5 and adds radius_md5_fips_override.
 
 post8 silences a static analyzer warning.
 
-post9 add missing includes for FIPS_mode() macro
-
-Last-updated: krb5-1.20.1
+Last-updated: krb5-1.20
 ---
  doc/admin/conf_files/krb5_conf.rst            |  6 +++
- src/lib/crypto/krb/prng.c                     | 17 ++++++-
- .../crypto/openssl/enc_provider/camellia.c    |  7 +++
- src/lib/crypto/openssl/enc_provider/rc4.c     | 17 ++++++-
+ src/lib/crypto/krb/prng.c                     | 15 +++++-
+ .../crypto/openssl/enc_provider/camellia.c    |  6 +++
+ src/lib/crypto/openssl/enc_provider/rc4.c     | 13 +++++-
  .../crypto/openssl/hash_provider/hash_evp.c   | 12 +++++
- src/lib/crypto/openssl/hmac.c                 |  7 ++-
+ src/lib/crypto/openssl/hmac.c                 |  6 ++-
  src/lib/krad/attr.c                           | 46 ++++++++++++++-----
  src/lib/krad/attrset.c                        |  5 +-
- src/lib/krad/internal.h                       | 32 ++++++++++++-
+ src/lib/krad/internal.h                       | 28 ++++++++++-
  src/lib/krad/packet.c                         | 22 +++++----
  src/lib/krad/remote.c                         | 10 +++-
  src/lib/krad/t_attr.c                         |  3 +-
  src/lib/krad/t_attrset.c                      |  4 +-
- src/plugins/preauth/spake/spake_client.c      | 10 ++++
- src/plugins/preauth/spake/spake_kdc.c         | 10 ++++
- 15 files changed, 175 insertions(+), 33 deletions(-)
+ src/plugins/preauth/spake/spake_client.c      |  6 +++
+ src/plugins/preauth/spake/spake_kdc.c         |  6 +++
+ 15 files changed, 155 insertions(+), 33 deletions(-)
 
 diff --git a/doc/admin/conf_files/krb5_conf.rst b/doc/admin/conf_files/krb5_conf.rst
-index d5d6e06ebb..2a4962069f 100644
+index f22d5db11b..a33711d918 100644
 --- a/doc/admin/conf_files/krb5_conf.rst
 +++ b/doc/admin/conf_files/krb5_conf.rst
 @@ -330,6 +330,12 @@ The libdefaults section may contain any of the following relations:
@@ -60,25 +58,23 @@ index d5d6e06ebb..2a4962069f 100644
      If this flag is true, reverse name lookup will be used in addition
      to forward name lookup to canonicalizing hostnames for use in
 diff --git a/src/lib/crypto/krb/prng.c b/src/lib/crypto/krb/prng.c
-index d6b79e2dea..ae37c77518 100644
+index d6b79e2dea..9e80a03d21 100644
 --- a/src/lib/crypto/krb/prng.c
 +++ b/src/lib/crypto/krb/prng.c
-@@ -26,6 +26,14 @@
+@@ -26,6 +26,12 @@
  
  #include "crypto_int.h"
  
 +#include <openssl/rand.h>
 +
-+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
-+#include <openssl/fips.h>
-+#else
++#if OPENSSL_VERSION_NUMBER < 0x30000000L
 +#include <openssl/crypto.h>
 +#endif
 +
  krb5_error_code KRB5_CALLCONV
  krb5_c_random_seed(krb5_context context, krb5_data *data)
  {
-@@ -96,9 +104,16 @@ cleanup:
+@@ -96,9 +102,16 @@ cleanup:
  static krb5_boolean
  get_os_entropy(unsigned char *buf, size_t len)
  {
@@ -97,18 +93,10 @@ index d6b79e2dea..ae37c77518 100644
          /*
           * Pull from the /dev/urandom pool, but require it to have been seeded.
 diff --git a/src/lib/crypto/openssl/enc_provider/camellia.c b/src/lib/crypto/openssl/enc_provider/camellia.c
-index 01920e6ce1..3dd3b0624f 100644
+index 01920e6ce1..d9f327add6 100644
 --- a/src/lib/crypto/openssl/enc_provider/camellia.c
 +++ b/src/lib/crypto/openssl/enc_provider/camellia.c
-@@ -32,6 +32,7 @@
- #include <openssl/camellia.h>
- #if OPENSSL_VERSION_NUMBER >= 0x30000000L
- #include <openssl/core_names.h>
-+#include <openssl/fips.h>
- #else
- #include <openssl/modes.h>
- #endif
-@@ -387,6 +388,9 @@ krb5int_camellia_cbc_mac(krb5_key key, const krb5_crypto_iov *data,
+@@ -387,6 +387,9 @@ krb5int_camellia_cbc_mac(krb5_key key, const krb5_crypto_iov *data,
      unsigned char blockY[CAMELLIA_BLOCK_SIZE], blockB[CAMELLIA_BLOCK_SIZE];
      struct iov_cursor cursor;
  
@@ -118,7 +106,7 @@ index 01920e6ce1..3dd3b0624f 100644
      if (output->length < CAMELLIA_BLOCK_SIZE)
          return KRB5_BAD_MSIZE;
  
-@@ -418,6 +422,9 @@ static krb5_error_code
+@@ -418,6 +421,9 @@ static krb5_error_code
  krb5int_camellia_init_state (const krb5_keyblock *key, krb5_keyusage usage,
                               krb5_data *state)
  {
@@ -129,21 +117,10 @@ index 01920e6ce1..3dd3b0624f 100644
      state->data = (void *) malloc(16);
      if (state->data == NULL)
 diff --git a/src/lib/crypto/openssl/enc_provider/rc4.c b/src/lib/crypto/openssl/enc_provider/rc4.c
-index 448d563348..6a83f10d27 100644
+index 448d563348..ce63cb5f1b 100644
 --- a/src/lib/crypto/openssl/enc_provider/rc4.c
 +++ b/src/lib/crypto/openssl/enc_provider/rc4.c
-@@ -38,6 +38,10 @@
- 
- #include <openssl/evp.h>
- 
-+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
-+#include <openssl/fips.h>
-+#endif
-+
- /*
-  * The loopback field is a pointer to the structure.  If the application copies
-  * the state (not a valid operation, but one which happens to works with some
-@@ -69,6 +73,9 @@ k5_arcfour_docrypt(krb5_key key, const krb5_data *state, krb5_crypto_iov *data,
+@@ -69,6 +69,9 @@ k5_arcfour_docrypt(krb5_key key, const krb5_data *state, krb5_crypto_iov *data,
      EVP_CIPHER_CTX *ctx = NULL;
      struct arcfour_state *arcstate;
  
@@ -153,7 +130,7 @@ index 448d563348..6a83f10d27 100644
      arcstate = (state != NULL) ? (void *)state->data : NULL;
      if (arcstate != NULL) {
          ctx = arcstate->ctx;
-@@ -116,7 +123,12 @@ k5_arcfour_docrypt(krb5_key key, const krb5_data *state, krb5_crypto_iov *data,
+@@ -116,7 +119,12 @@ k5_arcfour_docrypt(krb5_key key, const krb5_data *state, krb5_crypto_iov *data,
  static void
  k5_arcfour_free_state(krb5_data *state)
  {
@@ -167,7 +144,7 @@ index 448d563348..6a83f10d27 100644
  
      EVP_CIPHER_CTX_free(arcstate->ctx);
      free(arcstate);
-@@ -128,6 +140,9 @@ k5_arcfour_init_state(const krb5_keyblock *key,
+@@ -128,6 +136,9 @@ k5_arcfour_init_state(const krb5_keyblock *key,
  {
      struct arcfour_state *arcstate;
  
@@ -215,18 +192,10 @@ index f2fbffdb29..11659908bb 100644
  }
  
 diff --git a/src/lib/crypto/openssl/hmac.c b/src/lib/crypto/openssl/hmac.c
-index bf12b8d6a0..25a419d73a 100644
+index bf12b8d6a0..f21e268f7f 100644
 --- a/src/lib/crypto/openssl/hmac.c
 +++ b/src/lib/crypto/openssl/hmac.c
-@@ -59,6 +59,7 @@
- #if OPENSSL_VERSION_NUMBER >= 0x30000000L
- #include <openssl/params.h>
- #include <openssl/core_names.h>
-+#include <openssl/fips.h>
- #else
- #include <openssl/hmac.h>
- #endif
-@@ -111,7 +112,11 @@ map_digest(const struct krb5_hash_provider *hash)
+@@ -111,7 +111,11 @@ map_digest(const struct krb5_hash_provider *hash)
          return EVP_sha256();
      else if (hash == &krb5int_hash_sha384)
          return EVP_sha384();
@@ -387,23 +356,19 @@ index f309f1581c..6ec031e320 100644
              return retval;
  
 diff --git a/src/lib/krad/internal.h b/src/lib/krad/internal.h
-index 7619563fc5..a17b6f39b1 100644
+index 7619563fc5..e123763954 100644
 --- a/src/lib/krad/internal.h
 +++ b/src/lib/krad/internal.h
-@@ -39,6 +39,12 @@
+@@ -39,6 +39,8 @@
  #include <sys/socket.h>
  #include <netdb.h>
  
 +#include <openssl/crypto.h>
 +
-+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
-+#include <openssl/fips.h>
-+#endif
-+
  #ifndef UCHAR_MAX
  #define UCHAR_MAX 255
  #endif
-@@ -49,6 +55,13 @@
+@@ -49,6 +51,13 @@
  
  typedef struct krad_remote_st krad_remote;
  
@@ -417,7 +382,7 @@ index 7619563fc5..a17b6f39b1 100644
  /* Validate constraints of an attribute. */
  krb5_error_code
  kr_attr_valid(krad_attr type, const krb5_data *data);
-@@ -57,7 +70,8 @@ kr_attr_valid(krad_attr type, const krb5_data *data);
+@@ -57,7 +66,8 @@ kr_attr_valid(krad_attr type, const krb5_data *data);
  krb5_error_code
  kr_attr_encode(krb5_context ctx, const char *secret, const unsigned char *auth,
                 krad_attr type, const krb5_data *in,
@@ -427,7 +392,7 @@ index 7619563fc5..a17b6f39b1 100644
  
  /* Decode an attribute. */
  krb5_error_code
-@@ -69,7 +83,8 @@ kr_attr_decode(krb5_context ctx, const char *secret, const unsigned char *auth,
+@@ -69,7 +79,8 @@ kr_attr_decode(krb5_context ctx, const char *secret, const unsigned char *auth,
  krb5_error_code
  kr_attrset_encode(const krad_attrset *set, const char *secret,
                    const unsigned char *auth,
@@ -437,7 +402,7 @@ index 7619563fc5..a17b6f39b1 100644
  
  /* Decode attributes from a buffer. */
  krb5_error_code
-@@ -156,4 +171,17 @@ gai_error_code(int err)
+@@ -156,4 +167,17 @@ gai_error_code(int err)
      }
  }
  
@@ -595,23 +560,19 @@ index 7928335ca4..0f95762534 100644
  
      /* Manually encode User-Name. */
 diff --git a/src/plugins/preauth/spake/spake_client.c b/src/plugins/preauth/spake/spake_client.c
-index 00734a13b5..13c699071f 100644
+index 00734a13b5..a3ce22b70f 100644
 --- a/src/plugins/preauth/spake/spake_client.c
 +++ b/src/plugins/preauth/spake/spake_client.c
-@@ -38,6 +38,12 @@
+@@ -38,6 +38,8 @@
  #include "groups.h"
  #include <krb5/clpreauth_plugin.h>
  
 +#include <openssl/crypto.h>
 +
-+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
-+#include <openssl/fips.h>
-+#endif
-+
  typedef struct reqstate_st {
      krb5_pa_spake *msg;         /* set in prep_questions, used in process */
      krb5_keyblock *initial_key;
-@@ -375,6 +381,10 @@ clpreauth_spake_initvt(krb5_context context, int maj_ver, int min_ver,
+@@ -375,6 +377,10 @@ clpreauth_spake_initvt(krb5_context context, int maj_ver, int min_ver,
  
      if (maj_ver != 1)
          return KRB5_PLUGIN_VER_NOTSUPP;
@@ -623,23 +584,19 @@ index 00734a13b5..13c699071f 100644
      vt->name = "spake";
      vt->pa_type_list = pa_types;
 diff --git a/src/plugins/preauth/spake/spake_kdc.c b/src/plugins/preauth/spake/spake_kdc.c
-index 1a772d450f..3394f8a58e 100644
+index 1a772d450f..232e78bc05 100644
 --- a/src/plugins/preauth/spake/spake_kdc.c
 +++ b/src/plugins/preauth/spake/spake_kdc.c
-@@ -41,6 +41,12 @@
+@@ -41,6 +41,8 @@
  
  #include <krb5/kdcpreauth_plugin.h>
  
 +#include <openssl/crypto.h>
 +
-+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
-+#include <openssl/fips.h>
-+#endif
-+
  /*
   * The SPAKE kdcpreauth module uses a secure cookie containing the following
   * concatenated fields (all integer fields are big-endian):
-@@ -551,6 +557,10 @@ kdcpreauth_spake_initvt(krb5_context context, int maj_ver, int min_ver,
+@@ -551,6 +553,10 @@ kdcpreauth_spake_initvt(krb5_context context, int maj_ver, int min_ver,
  
      if (maj_ver != 1)
          return KRB5_PLUGIN_VER_NOTSUPP;
@@ -651,5 +608,5 @@ index 1a772d450f..3394f8a58e 100644
      vt->name = "spake";
      vt->pa_type_list = pa_types;
 -- 
-2.38.1
+2.41.0
 

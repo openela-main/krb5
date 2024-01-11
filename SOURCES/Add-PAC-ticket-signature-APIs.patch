@@ -1,4 +1,4 @@
-From d9ba43315f4a3e0fe2af9acbe47413ccb1f69af2 Mon Sep 17 00:00:00 2001
+From 48be25aaa27487fcbbba76044083de37211b30e7 Mon Sep 17 00:00:00 2001
 From: Isaac Boukris <iboukris@gmail.com>
 Date: Fri, 7 Jan 2022 13:46:24 -0500
 Subject: [PATCH] Add PAC ticket signature APIs
@@ -836,5 +836,5 @@ index 38d371cb86..7d033acae4 100644
  
  static krb5_error_code
 -- 
-2.39.1
+2.39.2
 

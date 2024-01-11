@@ -1,4 +1,4 @@
-From 3e40a47cee51fb855c71d425eb572253b6fc41eb Mon Sep 17 00:00:00 2001
+From 8ded82fb279198f3fa20fb7c836e77290e7bc6f6 Mon Sep 17 00:00:00 2001
 From: Julien Rische <jrische@redhat.com>
 Date: Fri, 24 Mar 2023 16:22:06 +0100
 Subject: [PATCH] [downstream] Support PAC full checksum w/o ticket checksum
@@ -136,5 +136,5 @@ index 28784ec67c..ac94e0c236 100644
  krb5_pac_get_types
  krb5_pac_init
 -- 
-2.39.2
+2.40.1
 

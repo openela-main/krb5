@@ -18,7 +18,7 @@ Summary: The Kerberos network authentication system
 Name: krb5
 Version: 1.18.2
 # for prerelease, should be e.g., 0.% {prerelease}.1% { ?dist } (without spaces)
-Release: 25%{?dist}
+Release: 26%{?dist}
 
 # lookaside-cached sources; two downloads and a build artifact
 Source0: https://web.mit.edu/kerberos/dist/krb5/1.18/krb5-%{version}%{prerelease}.tar.gz
@@ -94,11 +94,12 @@ Patch148: downstream-Fix-dejagnu-unit-tests-directory-name-for-RPC-lib.patch
 Patch149: krb5-krad-larger-attrs.patch
 Patch150: krb5-krad-remote.patch
 Patch151: Fix-integer-overflows-in-PAC-parsing.patch
-Patch152: 0152-Use-14-instead-of-9-for-unkeyed-SHA-1-checksum.patch
-Patch153: 0153-Add-PAC-ticket-signature-APIs.patch
-Patch154: 0154-Factor-out-PAC-checksum-verification.patch
-Patch155: 0155-Add-PAC-full-checksums.patch
-Patch156: 0156-downstream-Support-PAC-full-checksum-w-o-ticket-chec.patch
+Patch152: Use-14-instead-of-9-for-unkeyed-SHA-1-checksum.patch
+Patch153: Add-PAC-ticket-signature-APIs.patch
+Patch154: Factor-out-PAC-checksum-verification.patch
+Patch155: Add-PAC-full-checksums.patch
+Patch156: downstream-Support-PAC-full-checksum-w-o-ticket-chec.patch
+Patch157: downstream-Allow-to-make-AD-SIGNEDPATH-optional.patch
 
 License: MIT
 URL: http://web.mit.edu/kerberos/www/
@@ -709,15 +710,19 @@ exit 0
 %{_libdir}/libkadm5srv_mit.so.*
 
 %changelog
-* Tue Jun 06 2023 Julien Rische <jrische@redhat.com> - 1.18.2-25
+* Wed Sep 27 2023 Julien Rische <jrische@redhat.com> - 1.18.2-26
+- Allow to make AD-SIGNEDPATH optional
+  Resolves: RHEL-10514
+
+* Thu Jul 06 2023 Julien Rische <jrische@redhat.com> - 1.18.2-25
 - Bump release number
 
-* Fri Mar 24 2023 Julien Rische <jrische@redhat.com> - 1.18.2-24
-- Support PAC with KDC extended signature and without ticket signature
-- Resolves: rhbz#2211390
+* Wed Jul 05 2023 Julien Rische <jrische@redhat.com> - 1.18.2-24
+- Remove downloadable source signature file
+- Resolves: rhbz#2219654
 
-* Tue Feb 14 2023 Julien Rische <jrische@redhat.com> - 1.18.2-23
-- Add support for MS-PAC extended KDC signature (CVE-2022-37967)
+* Wed May 31 2023 Julien Rische <jrische@redhat.com> - 1.18.2-23
+- Support PAC with KDC extended signature and without ticket signature
 - Resolves: rhbz#2169477
 
 * Tue Nov 08 2022 Julien Rische <jrische@redhat.com> - 1.18.2-22

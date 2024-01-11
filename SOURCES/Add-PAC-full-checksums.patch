@@ -1,4 +1,4 @@
-From 1159d1e6057b6bc5b2a83bd6c8fc9f5fe38816d8 Mon Sep 17 00:00:00 2001
+From bf3e55bcd66c5d35fddadc94fd680bdd57508bce Mon Sep 17 00:00:00 2001
 From: Greg Hudson <ghudson@mit.edu>
 Date: Thu, 22 Dec 2022 03:05:23 -0500
 Subject: [PATCH] Add PAC full checksums
@@ -669,5 +669,5 @@ index 4fbdbec052..b0666c3b81 100644
  # Get another S4U2Proxy ticket including request-authdata.
  realm.run(['./s4u2proxy', usercache, 'service/2', '-2', 'proxy_ad'])
 -- 
-2.39.1
+2.39.2
 

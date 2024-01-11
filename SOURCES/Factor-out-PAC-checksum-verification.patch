@@ -1,4 +1,4 @@
-From ae7c326c3c074266d8c80d71561494d785172251 Mon Sep 17 00:00:00 2001
+From b0372e31b81321a820204450a35c7633caf1b7dd Mon Sep 17 00:00:00 2001
 From: Greg Hudson <ghudson@mit.edu>
 Date: Fri, 14 Jan 2022 02:05:58 -0500
 Subject: [PATCH] Factor out PAC checksum verification
@@ -254,5 +254,5 @@ index 6eb23d8090..2f6ad4e1df 100644
              return ret;
      }
 -- 
-2.39.1
+2.39.2
 

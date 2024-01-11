@@ -1,4 +1,4 @@
-From 9f3e127806d14b84d40abdfeae8fcd0daa1e6a4f Mon Sep 17 00:00:00 2001
+From b6ada496a285a7b350e28c97b53b6f659a9a94b9 Mon Sep 17 00:00:00 2001
 From: Greg Hudson <ghudson@mit.edu>
 Date: Sat, 11 Dec 2021 01:25:34 -0500
 Subject: [PATCH] Use 14 instead of 9 for unkeyed SHA-1 checksum
@@ -180,5 +180,5 @@ index 3ae56c0641..3bff456f8f 100644
          pkiDebug("unable to calculate AS REQ checksum\n");
          goto cleanup;
 -- 
-2.39.1
+2.39.2
 

@@ -18,7 +18,7 @@ Summary: The Kerberos network authentication system
 Name: krb5
 Version: 1.18.2
 # for prerelease, should be e.g., 0.% {prerelease}.1% { ?dist } (without spaces)
-Release: 26%{?dist}
+Release: 27%{?dist}
 
 # lookaside-cached sources; two downloads and a build artifact
 Source0: https://web.mit.edu/kerberos/dist/krb5/1.18/krb5-%{version}%{prerelease}.tar.gz
@@ -100,6 +100,10 @@ Patch154: Factor-out-PAC-checksum-verification.patch
 Patch155: Add-PAC-full-checksums.patch
 Patch156: downstream-Support-PAC-full-checksum-w-o-ticket-chec.patch
 Patch157: downstream-Allow-to-make-AD-SIGNEDPATH-optional.patch
+Patch158: End-connection-on-KDC_ERR_SVC_UNAVAILABLE.patch
+Patch159: Add-request_timeout-configuration-parameter.patch
+Patch160: Wait-indefinitely-on-KDC-TCP-connections.patch
+Patch161: Fix-two-unlikely-memory-leaks.patch
 
 License: MIT
 URL: http://web.mit.edu/kerberos/www/
@@ -710,6 +714,14 @@ exit 0
 %{_libdir}/libkadm5srv_mit.so.*
 
 %changelog
+* Thu Mar 21 2024 Julien Rische <jrische@redhat.com> - 1.18.2-27
+- Fix memory leak in GSSAPI interface
+  Resolves: RHEL-27250
+- Fix memory leak in PMAP RPC interface
+  Resolves: RHEL-27244
+- Make TCP waiting time configurable
+  Resolves: RHEL-17131
+
 * Wed Sep 27 2023 Julien Rische <jrische@redhat.com> - 1.18.2-26
 - Allow to make AD-SIGNEDPATH optional
   Resolves: RHEL-10514

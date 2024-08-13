@@ -18,7 +18,7 @@ Summary: The Kerberos network authentication system
 Name: krb5
 Version: 1.18.2
 # for prerelease, should be e.g., 0.% {prerelease}.1% { ?dist } (without spaces)
-Release: 28%{?dist}
+Release: 29%{?dist}
 
 # lookaside-cached sources; two downloads and a build artifact
 Source0: https://web.mit.edu/kerberos/dist/krb5/1.18/krb5-%{version}%{prerelease}.tar.gz
@@ -105,6 +105,8 @@ Patch159: Add-request_timeout-configuration-parameter.patch
 Patch160: Wait-indefinitely-on-KDC-TCP-connections.patch
 Patch161: Fix-two-unlikely-memory-leaks.patch
 Patch162: Fix-defcred-leak-in-krb5-gss_inquire_cred.patch
+Patch163: Add-a-simple-DER-support-header.patch
+Patch164: Fix-vulnerabilities-in-GSS-message-token-handling.patch
 
 License: MIT
 URL: http://web.mit.edu/kerberos/www/
@@ -715,6 +717,11 @@ exit 0
 %{_libdir}/libkadm5srv_mit.so.*
 
 %changelog
+* Mon Jul 01 2024 Julien Rische <jrische@redhat.com> - 1.18.2-29
+- CVE-2024-37370 CVE-2024-37371
+  Fix vulnerabilities in GSS message token handling
+  Resolves: RHEL-45398 RHEL-45386
+
 * Tue Apr 09 2024 Julien Rische <jrische@redhat.com> - 1.18.2-28
 - Fix leak of default credentials in gss_inquire_cred()
   Resolves: RHEL-32258

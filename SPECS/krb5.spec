@@ -34,7 +34,7 @@
 #
 # baserelease is what we have standardized across Fedora and what
 # rpmdev-bumpspec knows how to handle.
-%global baserelease 1
+%global baserelease 2
 
 # This should be e.g. beta1 or %%nil
 %global pre_release %nil
@@ -98,6 +98,7 @@ Patch0012: 0012-downstream-Allow-to-set-PAC-ticket-signature-as-opti.patch
 Patch0013: 0013-downstream-Make-PKINIT-CMS-SHA-1-signature-verificat.patch
 Patch0014: 0014-Enable-PKINIT-if-at-least-one-group-is-available.patch
 Patch0015: 0015-Fix-double-free-in-KDC-TGS-processing.patch
+Patch0016: 0016-Fix-vulnerabilities-in-GSS-message-token-handling.patch
 
 License: MIT
 URL: https://web.mit.edu/kerberos/www/
@@ -662,6 +663,11 @@ exit 0
 %{_libdir}/libkadm5srv_mit.so.*
 
 %changelog
+* Mon Jul 01 2024 Julien Rische <jrische@redhat.com> - 1.21.1-2
+- CVE-2024-37370 CVE-2024-37371
+  Fix vulnerabilities in GSS message token handling
+  Resolves: RHEL-45401 RHEL-45390
+
 * Tue Aug 08 2023 Julien Rische <jrische@redhat.com> - 1.21.1-1
 - New upstream version (1.21.1)
 - Fix double-free in KDC TGS processing (CVE-2023-39975)

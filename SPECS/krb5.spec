@@ -34,7 +34,7 @@
 #
 # baserelease is what we have standardized across Fedora and what
 # rpmdev-bumpspec knows how to handle.
-%global baserelease 2
+%global baserelease 3
 
 # This should be e.g. beta1 or %%nil
 %global pre_release %nil
@@ -98,7 +98,14 @@ Patch0012: 0012-downstream-Allow-to-set-PAC-ticket-signature-as-opti.patch
 Patch0013: 0013-downstream-Make-PKINIT-CMS-SHA-1-signature-verificat.patch
 Patch0014: 0014-Enable-PKINIT-if-at-least-one-group-is-available.patch
 Patch0015: 0015-Fix-double-free-in-KDC-TGS-processing.patch
-Patch0016: 0016-Fix-vulnerabilities-in-GSS-message-token-handling.patch
+Patch0016: 0016-Eliminate-old-style-function-declarations.patch
+Patch0017: 0017-End-connection-on-KDC_ERR_SVC_UNAVAILABLE.patch
+Patch0018: 0018-Add-request_timeout-configuration-parameter.patch
+Patch0019: 0019-Wait-indefinitely-on-KDC-TCP-connections.patch
+Patch0020: 0020-Avoid-strict-prototype-compiler-errors.patch
+Patch0021: 0021-Fix-leak-in-KDC-NDR-encoding.patch
+Patch0022: 0022-Fix-two-unlikely-memory-leaks.patch
+Patch0023: 0023-Fix-vulnerabilities-in-GSS-message-token-handling.patch
 
 License: MIT
 URL: https://web.mit.edu/kerberos/www/
@@ -663,10 +670,20 @@ exit 0
 %{_libdir}/libkadm5srv_mit.so.*
 
 %changelog
-* Mon Jul 01 2024 Julien Rische <jrische@redhat.com> - 1.21.1-2
+* Fri Jul 05 2024 Julien Rische <jrische@redhat.com> - 1.21.1-3
 - CVE-2024-37370 CVE-2024-37371
   Fix vulnerabilities in GSS message token handling
-  Resolves: RHEL-45401 RHEL-45390
+  Resolves: RHEL-45402 RHEL-45392
+
+* Wed Mar 20 2024 Julien Rische <jrische@redhat.com> - 1.21.1-2
+- Fix memory leak in GSSAPI interface
+  Resolves: RHEL-27251
+- Fix memory leak in PMAP RPC interface
+  Resolves: RHEL-27245
+- Fix memory leak in failing UTF-8 to UTF-16 re-encoding for PAC
+  Resolves: RHEL-27253
+- Make TCP waiting time configurable
+  Resolves: RHEL-17132
 
 * Tue Aug 08 2023 Julien Rische <jrische@redhat.com> - 1.21.1-1
 - New upstream version (1.21.1)

@@ -1,4 +1,4 @@
-From 7d9b143d1749cee1dc81c6b0f5a5493534bc6630 Mon Sep 17 00:00:00 2001
+From 28009fda028c489ae38902b2c513c4208889f043 Mon Sep 17 00:00:00 2001
 From: Greg Hudson <ghudson@mit.edu>
 Date: Fri, 14 Jun 2024 10:56:12 -0400
 Subject: [PATCH] Fix vulnerabilities in GSS message token handling
@@ -40,10 +40,10 @@ target_version: 1.21-next
  4 files changed, 275 insertions(+), 46 deletions(-)
 
 diff --git a/src/lib/gssapi/krb5/k5sealv3.c b/src/lib/gssapi/krb5/k5sealv3.c
-index 3b4f8cb837..1fcbdfbb87 100644
+index e881eee835..d3210c1107 100644
 --- a/src/lib/gssapi/krb5/k5sealv3.c
 +++ b/src/lib/gssapi/krb5/k5sealv3.c
-@@ -408,10 +408,15 @@ gss_krb5int_unseal_token_v3(krb5_context *contextptr,
+@@ -400,10 +400,15 @@ gss_krb5int_unseal_token_v3(krb5_context *contextptr,
              /* Don't use bodysize here!  Use the fact that
                 cipher.ciphertext.length has been adjusted to the
                 correct length.  */
@@ -200,7 +200,7 @@ index 3ce2a90ce9..6a6585d9af 100644
      switch (toktype2) {
      case KG2_TOK_MIC_MSG:
 diff --git a/src/tests/gssapi/t_invalid.c b/src/tests/gssapi/t_invalid.c
-index fb8fe55111..8192935099 100644
+index e08c0039f8..a052b8ab6e 100644
 --- a/src/tests/gssapi/t_invalid.c
 +++ b/src/tests/gssapi/t_invalid.c
 @@ -36,31 +36,41 @@
@@ -274,7 +274,7 @@ index fb8fe55111..8192935099 100644
 +/* Fake up enough of a CFX GSS context for gss_unwrap, using an AES key.
 + * The context takes ownership of subkey. */
  static gss_ctx_id_t
--make_fake_cfx_context()
+-make_fake_cfx_context(void)
 +make_fake_cfx_context(krb5_key subkey)
  {
      gss_union_ctx_id_t uctx;
@@ -288,7 +288,7 @@ index fb8fe55111..8192935099 100644
      kgctx->established = 1;
      kgctx->proto = 1;
      if (g_seqstate_init(&kgctx->seqstate, 0, 0, 0, 0) != 0)
-@@ -116,15 +134,10 @@ make_fake_cfx_context()
+@@ -116,15 +134,10 @@ make_fake_cfx_context(void)
      kgctx->sealalg = -1;
      kgctx->signalg = -1;
  
@@ -505,7 +505,7 @@ index fb8fe55111..8192935099 100644
      memcpy(in.value, value, len);
      in.length = len;
      (void)gss_accept_sec_context(&minor, &ctx, GSS_C_NO_CREDENTIAL, &in,
-@@ -424,11 +569,23 @@ test_short_encapsulation()
+@@ -424,11 +569,23 @@ test_short_encapsulation(void)
  int
  main(int argc, char **argv)
  {

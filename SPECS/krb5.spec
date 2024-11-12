@@ -34,7 +34,7 @@
 #
 # baserelease is what we have standardized across Fedora and what
 # rpmdev-bumpspec knows how to handle.
-%global baserelease 3
+%global baserelease 4
 
 # This should be e.g. beta1 or %%nil
 %global pre_release %nil
@@ -106,6 +106,9 @@ Patch0020: 0020-Avoid-strict-prototype-compiler-errors.patch
 Patch0021: 0021-Fix-leak-in-KDC-NDR-encoding.patch
 Patch0022: 0022-Fix-two-unlikely-memory-leaks.patch
 Patch0023: 0023-Fix-vulnerabilities-in-GSS-message-token-handling.patch
+Patch0024: 0024-Remove-PKINIT-RSA-support.patch
+Patch0025: 0025-Fix-various-issues-detected-by-static-analysis.patch
+Patch0026: 0026-Generate-and-verify-message-MACs-in-libkrad.patch
 
 License: MIT
 URL: https://web.mit.edu/kerberos/www/
@@ -670,6 +673,14 @@ exit 0
 %{_libdir}/libkadm5srv_mit.so.*
 
 %changelog
+* Thu Oct 17 2024 Julien Rische <jrische@redhat.com> - 1.21.1-4
+- libkrad: implement support for Message-Authenticator (CVE-2024-3596)
+  Resolves: RHEL-55423
+- Fix various issues detected by static analysis
+  Resolves: RHEL-58216
+- Remove RSA protocol for PKINIT
+  Resolves: RHEL-15323
+
 * Fri Jul 05 2024 Julien Rische <jrische@redhat.com> - 1.21.1-3
 - CVE-2024-37370 CVE-2024-37371
   Fix vulnerabilities in GSS message token handling

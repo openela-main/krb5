@@ -34,7 +34,7 @@
 #
 # baserelease is what we have standardized across Fedora and what
 # rpmdev-bumpspec knows how to handle.
-%global baserelease 4
+%global baserelease 6
 
 # This should be e.g. beta1 or %%nil
 %global pre_release %nil
@@ -109,6 +109,15 @@ Patch0023: 0023-Fix-vulnerabilities-in-GSS-message-token-handling.patch
 Patch0024: 0024-Remove-PKINIT-RSA-support.patch
 Patch0025: 0025-Fix-various-issues-detected-by-static-analysis.patch
 Patch0026: 0026-Generate-and-verify-message-MACs-in-libkrad.patch
+Patch0027: 0027-PKINIT-ECDH-support.patch
+Patch0028: 0028-Add-ecdsa-with-sha512-256-to-supportedCMSTypes.patch
+Patch0029: 0029-Get-rid-of-pkinit_crypto_openssl.h.patch
+Patch0030: 0030-Use-SoftHSMv2-for-PKCS11-PKINIT-tests.patch
+Patch0031: 0031-Simplify-PKINIT-cert-representation.patch
+Patch0032: 0032-Support-PKCS11-EC-client-certs-in-PKINIT.patch
+Patch0033: 0033-Improve-PKCS11-error-reporting-in-PKINIT.patch
+Patch0034: 0034-Set-missing-mask-flags-for-kdb5_util-operations.patch
+Patch0035: 0035-Prevent-overflow-when-calculating-ulog-block-size.patch
 
 License: MIT
 URL: https://web.mit.edu/kerberos/www/
@@ -137,6 +146,8 @@ BuildRequires: net-tools, rpcbind
 BuildRequires: hostname
 BuildRequires: iproute
 BuildRequires: python3-pyrad
+BuildRequires: opensc
+BuildRequires: softhsm
 %endif
 
 # Need KDFs.  This is the "real" version
@@ -673,6 +684,18 @@ exit 0
 %{_libdir}/libkadm5srv_mit.so.*
 
 %changelog
+* Wed Jan 29 2025 Julien Rische <jrische@redhat.com> - 1.21.1-6
+- Prevent overflow when calculating ulog block size (CVE-2025-24528)
+  Resolves: RHEL-76759
+
+* Fri Jan 17 2025 Julien Rische <jrische@redhat.com> - 1.21.1-5
+- Support PKCS11 EC client certs in PKINIT
+  Resolves: RHEL-74374
+- kdb5_util: fix DB entry flags on modification
+  Resolves: RHEL-56059
+- Add ECDH support for PKINIT (RFC5349)
+  Resolves: RHEL-4902
+
 * Thu Oct 17 2024 Julien Rische <jrische@redhat.com> - 1.21.1-4
 - libkrad: implement support for Message-Authenticator (CVE-2024-3596)
   Resolves: RHEL-55423

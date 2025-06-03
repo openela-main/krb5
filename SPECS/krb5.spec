@@ -18,7 +18,7 @@ Summary: The Kerberos network authentication system
 Name: krb5
 Version: 1.18.2
 # for prerelease, should be e.g., 0.% {prerelease}.1% { ?dist } (without spaces)
-Release: 31%{?dist}
+Release: 32%{?dist}
 
 # lookaside-cached sources; two downloads and a build artifact
 Source0: https://web.mit.edu/kerberos/dist/krb5/1.18/krb5-%{version}%{prerelease}.tar.gz
@@ -111,6 +111,11 @@ Patch165: Remove-PKINIT-RSA-support.patch
 Patch166: Generate-and-verify-message-MACs-in-libkrad.patch
 Patch167: Set-missing-mask-flags-for-kdb5_util-operations.patch
 Patch168: Prevent-overflow-when-calculating-ulog-block-size.patch
+Patch169: In-KDC-assume-all-services-support-aes256-sha1.patch
+Patch170: Don-t-issue-session-keys-with-deprecated-enctypes.patch
+Patch171: downstream-Remove-3des-support-cumulative-1.patch
+Patch172: Add-PKINIT-paChecksum2-from-MS-PKCA-v20230920.patch
+Patch173: downstream-Do-not-block-HMAC-MD4-5-in-FIPS-mode.patch
 
 License: MIT
 URL: http://web.mit.edu/kerberos/www/
@@ -721,6 +726,14 @@ exit 0
 %{_libdir}/libkadm5srv_mit.so.*
 
 %changelog
+* Thu Apr 24 2025 Julien Rische <jrische@redhat.com> - 1.18.2-32
+- Do not block HMAC-MD4/5 in FIPS mode
+  Resolves: RHEL-86786
+- Don't issue RC4 session keys by default (CVE-2025-3576)
+  Resolves: RHEL-88049
+- Add PKINIT paChecksum2 from MS-PKCA v20230920
+  Resolves: RHEL-82648
+
 * Tue Feb 11 2025 Julien Rische <jrische@redhat.com> - 1.18.2-31
 - Prevent overflow when calculating ulog block size (CVE-2025-24528)
   Resolves: RHEL-78248

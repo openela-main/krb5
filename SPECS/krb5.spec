@@ -1,27 +1,3 @@
-%bcond_without check
-%if %{without check}
-%global skipcheck 1
-%endif
-
-# COPR doesn't work right with the tests.  I suspect keyring issues,
-# but can't actually debug, so...
-%if 0%{?copr_username:1}
-%global skipcheck 1
-%endif
-
-# There are 0 test machines for this architecture, very few builders, and
-# they're not very well provisioned / maintained.  I can't support it.
-# Patches welcome, but there's nothing I can do - it fails more than half the
-# for "infrastructure issues" that I can't hope to debug.
-%ifarch s390x
-%global skipcheck 1
-%endif
-
-# RHEL runs upstream's test suite in a separate pass after build.
-%if 0%{?rhel}
-%global skipcheck 1
-%endif
-
 # Set this so that find-lang.sh will recognize the .po files.
 %global gettext_domain mit-krb5
 # Guess where the -libs subpackage's docs are going to go.
@@ -34,7 +10,7 @@
 #
 # baserelease is what we have standardized across Fedora and what
 # rpmdev-bumpspec knows how to handle.
-%global baserelease 6
+%global baserelease 8
 
 # This should be e.g. beta1 or %%nil
 %global pre_release %nil
@@ -82,6 +58,7 @@ Source11: ksu.pamd
 Source12: krb5kdc.logrotate
 Source13: kadmind.logrotate
 Source14: krb5-krb5kdc.conf
+Source15: %{name}-tests
 
 Patch0001: 0001-downstream-Revert-Don-t-issue-session-keys-with-depr.patch
 Patch0002: 0002-downstream-ksu-pam-integration.patch
@@ -118,45 +95,103 @@ Patch0032: 0032-Support-PKCS11-EC-client-certs-in-PKINIT.patch
 Patch0033: 0033-Improve-PKCS11-error-reporting-in-PKINIT.patch
 Patch0034: 0034-Set-missing-mask-flags-for-kdb5_util-operations.patch
 Patch0035: 0035-Prevent-overflow-when-calculating-ulog-block-size.patch
+Patch0036: 0036-Don-t-issue-session-keys-with-deprecated-enctypes.patch
+Patch0037: 0037-downstream-Remove-3des-support-cumulative-1.patch
+Patch0038: 0038-Add-PKINIT-paChecksum2-from-MS-PKCA-v20230920.patch
+Patch0039: 0039-downstream-Do-not-block-HMAC-MD4-5-in-FIPS-mode.patch
 
 License: MIT
 URL: https://web.mit.edu/kerberos/www/
-BuildRequires: autoconf, bison, make, flex, gawk, gettext, pkgconfig, sed
-BuildRequires: gcc, gcc-c++
-BuildRequires: libcom_err-devel, libedit-devel, libss-devel
-BuildRequires: gzip, ncurses-devel
-BuildRequires: python3, python3-sphinx
-BuildRequires: keyutils, keyutils-libs-devel >= 1.5.8
-BuildRequires: libselinux-devel
-BuildRequires: pam-devel
-BuildRequires: systemd-units
-BuildRequires: tcl-devel
-BuildRequires: libverto-devel
-BuildRequires: openldap-devel
-BuildRequires: lmdb-devel
-BuildRequires: perl-interpreter
+
+%global common_dependencies() %{expand:
+%1: autoconf
+%1: bison
+%1: coreutils
+%1: flex
+%1: gawk
+%1: gcc
+%1: gcc-c++
+%1: gettext
+%1: gzip
+%1: keyutils-libs-devel >= 1.5.8
+%1: libcom_err-devel
+%1: libedit-devel
+%1: libselinux-devel
+%1: libss-devel
+%1: libverto-devel
+%1: lmdb-devel
+%1: make
+%1: ncurses-devel
+%1: openldap-devel
+%1: openssl-devel >= 1:3.0.0
+%1: pam-devel
+%1: perl-interpreter
+%1: pkgconfig
+%1: python3
+%1: python3-sphinx
+%1: sed
+%1: systemd-units
+%1: tcl-devel
+
+# Enable compilation of optional tests
+%1: libcmocka-devel
+%1: opensc
+%1: softhsm
+}
+
+%{common_dependencies BuildRequires}
 
 # For autosetup
 BuildRequires: git
 
-%if 0%{?skipcheck}
-%else
-BuildRequires: dejagnu
-BuildRequires: net-tools, rpcbind
-BuildRequires: hostname
-BuildRequires: iproute
-BuildRequires: python3-pyrad
-BuildRequires: opensc
-BuildRequires: softhsm
-%endif
+# For files install
+BuildRequires: file
 
-# Need KDFs.  This is the "real" version
-BuildRequires: openssl-devel >= 1:3.0.0
+# resolv_wrapper is not available in C9S buildroot repo
+#BuildRequires: resolv_wrapper
 
 %description
 Kerberos V5 is a trusted-third-party network authentication system,
 which can improve your network's security by eliminating the insecure
 practice of sending passwords over the network in unencrypted form.
+
+%package tests
+Summary: Test sources for krb5 build
+
+# Build dependencies
+%{common_dependencies Requires}
+
+# Test dependencies
+Requires: dejagnu
+Requires: hostname
+Requires: iproute
+Requires: keyutils
+Requires: libverto-module-base
+Requires: logrotate
+Requires: net-tools
+Requires: perl-interpreter
+Requires: procps-ng
+Requires: python3-kdcproxy
+Requires: redhat-rpm-config
+Requires: rpcbind
+Requires: words
+Requires: /etc/crypto-policies/back-ends/krb5.config
+
+# resolv_wrapper is not available in C9S buildroot repo
+#Requires: resolv_wrapper
+
+Recommends: openldap-clients
+Recommends: python3-pyrad
+
+# Something blocks the use of DIGEST-MD5 in openldap-servers
+#Recommends: openldap-servers
+
+# sssd_krb5_locator_plugin.so conflicts with t_discover_uri.py
+Conflicts: sssd-client
+
+%description tests
+FOR TESTING PURPOSE ONLY
+Test sources for krb5 build, with pre-defined compilation parameters
 
 %package devel
 Summary: Development files needed to compile Kerberos 5 programs
@@ -196,8 +231,8 @@ Requires(preun): systemd-units
 Requires(postun): systemd-units
 # we drop files in its directory, but we don't want to own that directory
 Requires: logrotate
-# we specify /usr/share/dict/words as the default dict_file in kdc.conf
-Requires: /usr/share/dict/words
+# we specify /usr/share/dict/words (provided by words) as the default dict_file in kdc.conf
+Requires: words
 # for run-time, and for parts of the test suite
 BuildRequires: libverto-module-base
 Requires: libverto-module-base
@@ -366,17 +401,6 @@ sphinx-build -a -b man   -t pathsubs doc build-man
 sphinx-build -a -b html  -t pathsubs doc build-html
 rm -fr build-html/_sources
 
-%if 0%{?skipcheck}
-%else
-%check
-pushd src
-
-# The build system may give us a revoked session keyring, so run affected
-# tests with a new one.
-keyctl session - make check OFFLINE=yes TMPDIR=%{_tmppath}
-popd
-%endif
-
 %install
 [ "$RPM_BUILD_ROOT" != '/' ] && rm -rf -- "$RPM_BUILD_ROOT"
 
@@ -491,6 +515,40 @@ rm -- "$RPM_BUILD_ROOT/%{_docdir}/krb5-libs/examples/services.append"
 
 # This is only needed for tests
 rm -- "$RPM_BUILD_ROOT/%{_libdir}/krb5/plugins/preauth/test.so"
+
+# Generate tests launching script
+sed -e 's/{{ name }}/%{name}/g' \
+    -e 's/{{ version }}/%{krb5_version}/g' \
+    -e 's/{{ release }}/%{krb5_release}/g' \
+    -e 's/{{ arch }}/%{_arch}/g' \
+    -i %{SOURCE15}
+mkdir -p $RPM_BUILD_ROOT%{_libexecdir}
+install -pm 755 %{SOURCE15} $RPM_BUILD_ROOT%{_libexecdir}/%{name}-tests-%{_arch}
+
+# Copy source files from build folder to system data folder
+install -pdm 755 $RPM_BUILD_ROOT%{_datarootdir}/%{name}-tests/%{_arch}
+pushd src
+cp -p --parents -t "$RPM_BUILD_ROOT%{_datarootdir}/%{name}-tests/%{_arch}/" \
+    $(find . -type f -exec file -i "{}" + \
+          | sed -ne 's|^\./\([^:]\+\): \+text/.\+$|\1|p' | grep -Ev '~$')
+popd
+
+# Copy binary test files
+install -pm 644 src/tests/pkinit-certs/*.p12 \
+    "$RPM_BUILD_ROOT%{_datarootdir}/%{name}-tests/%{_arch}/tests/pkinit-certs/"
+install -pm 644 src/tests/au_dict.json \
+    "$RPM_BUILD_ROOT%{_datarootdir}/%{name}-tests/%{_arch}/tests/"
+
+# Unset executable bit if no shebang in script
+for f in $(find "$RPM_BUILD_ROOT%{_datarootdir}/%{name}-tests/%{_arch}/" -type f -executable)
+do
+    head -n1 "$f" | grep -Eq '^#!' || chmod a-x "$f"
+done
+
+# Remove broken shebang Perl scripts
+rm -- "$RPM_BUILD_ROOT%{_datarootdir}/%{name}-tests/%{_arch}/config/wconfig.pl"
+rm -- "$RPM_BUILD_ROOT%{_datarootdir}/%{name}-tests/%{_arch}/kadmin/kdbkeys/do-test.pl"
+
 
 %find_lang %{gettext_domain}
 
@@ -683,7 +741,22 @@ exit 0
 %{_libdir}/libkadm5clnt_mit.so.*
 %{_libdir}/libkadm5srv_mit.so.*
 
+%files tests
+%{_libexecdir}/%{name}-tests-%{_arch}
+%{_datarootdir}/%{name}-tests/%{_arch}
+
 %changelog
+* Fri Apr 18 2025 Julien Rische <jrische@redhat.com> - 1.21.1-9
+- Do not block HMAC-MD4/5 in FIPS mode
+  Resolves: RHEL-88704
+- Don't issue RC4 session keys by default (CVE-2025-3576)
+  Resolves: RHEL-88048
+- Add PKINIT paChecksum2 from MS-PKCA v20230920
+  Resolves: RHEL-82647
+
+* Tue Mar 25 2025 Julien Rische <jrische@redhat.com> - 1.21.1-7
+- Add dedicated tests sub-package
+
 * Wed Jan 29 2025 Julien Rische <jrische@redhat.com> - 1.21.1-6
 - Prevent overflow when calculating ulog block size (CVE-2025-24528)
   Resolves: RHEL-76759

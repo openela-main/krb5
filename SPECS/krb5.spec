@@ -10,7 +10,7 @@
 #
 # baserelease is what we have standardized across Fedora and what
 # rpmdev-bumpspec knows how to handle.
-%global baserelease 8
+%global baserelease 9
 
 # This should be e.g. beta1 or %%nil
 %global pre_release %nil
@@ -99,6 +99,7 @@ Patch0036: 0036-Don-t-issue-session-keys-with-deprecated-enctypes.patch
 Patch0037: 0037-downstream-Remove-3des-support-cumulative-1.patch
 Patch0038: 0038-Add-PKINIT-paChecksum2-from-MS-PKCA-v20230920.patch
 Patch0039: 0039-downstream-Do-not-block-HMAC-MD4-5-in-FIPS-mode.patch
+Patch0040: 0040-Fix-uninitialized-pointer-dereference-in-libkrad.patch
 
 License: MIT
 URL: https://web.mit.edu/kerberos/www/
@@ -746,7 +747,11 @@ exit 0
 %{_datarootdir}/%{name}-tests/%{_arch}
 
 %changelog
-* Fri Apr 18 2025 Julien Rische <jrische@redhat.com> - 1.21.1-9
+* Thu Feb 19 2026 Julien Rische <jrische@redhat.com> - 1.21.1-9
+- krad: packet ID fetched from uninitialized variable
+  Resolves: RHEL-150953
+
+* Fri Apr 18 2025 Julien Rische <jrische@redhat.com> - 1.21.1-8
 - Do not block HMAC-MD4/5 in FIPS mode
   Resolves: RHEL-88704
 - Don't issue RC4 session keys by default (CVE-2025-3576)

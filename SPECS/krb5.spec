@@ -18,7 +18,7 @@ Summary: The Kerberos network authentication system
 Name: krb5
 Version: 1.18.2
 # for prerelease, should be e.g., 0.% {prerelease}.1% { ?dist } (without spaces)
-Release: 33%{?dist}
+Release: 34%{?dist}
 
 # lookaside-cached sources; two downloads and a build artifact
 Source0: https://web.mit.edu/kerberos/dist/krb5/1.18/krb5-%{version}%{prerelease}.tar.gz
@@ -118,6 +118,7 @@ Patch172: Add-PKINIT-paChecksum2-from-MS-PKCA-v20230920.patch
 Patch173: downstream-Do-not-block-HMAC-MD4-5-in-FIPS-mode.patch
 Patch174: Improve-ulog-block-resize-efficiency.patch
 Patch175: Fix-uninitialized-pointer-dereference-in-libkrad.patch
+Patch176: Fix-two-NegoEx-parsing-vulnerabilities.patch
 
 License: MIT
 URL: http://web.mit.edu/kerberos/www/
@@ -728,6 +729,10 @@ exit 0
 %{_libdir}/libkadm5srv_mit.so.*
 
 %changelog
+* Tue Apr 28 2026 Julien Rische <jrische@redhat.com> - 1.18.2-34
+- Fix NegoEx parsing vulnerabilities (CVE-2026-40355, CVE-2026-40356)
+  Resolves: RHEL-171589 RHEL-171594
+
 * Wed Jan 28 2026 Julien Rische <jrische@redhat.com> - 1.18.2-33
 - krad: packet ID fetched from uninitialized variable
   Resolves: RHEL-109220

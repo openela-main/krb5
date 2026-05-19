@@ -97,7 +97,10 @@ Patch0035: 0035-Don-t-issue-session-keys-with-deprecated-enctypes.patch
 Patch0036: 0036-downstream-Remove-3des-support-cumulative-1.patch
 Patch0037: 0037-Add-PKINIT-paChecksum2-from-MS-PKCA-v20230920.patch
 Patch0038: 0038-downstream-Do-not-block-HMAC-MD4-5-in-FIPS-mode.patch
-Patch0039: 0039-Fix-uninitialized-pointer-dereference-in-libkrad.patch
+Patch0039: 0039-Improve-ulog-block-resize-efficiency.patch
+Patch0040: 0040-Add-xrealmauthz-KDC-policy-module-and-tests.patch
+Patch0041: 0041-Fix-uninitialized-pointer-dereference-in-libkrad.patch
+Patch0042: 0042-downstream-Install-xrealmauthz-like-other-plugins.patch
 
 License: Brian-Gladman-2-Clause AND BSD-2-Clause AND (BSD-2-Clause OR GPL-2.0-or-later) AND BSD-2-Clause-first-lines AND BSD-3-Clause AND BSD-4-Clause AND CMU-Mach-nodoc AND FSFULLRWD AND HPND AND HPND-export2-US AND HPND-export-US AND HPND-export-US-acknowledgement AND HPND-export-US-modify AND ISC AND MIT AND MIT-CMU AND OLDAP-2.8 AND OpenVision
 URL: https://web.mit.edu/kerberos/www/
@@ -233,6 +236,17 @@ Kerberos is a network authentication system. The krb5-pkinit
 package contains the PKINIT plugin, which allows clients
 to obtain initial credentials from a KDC using a private key and a
 certificate.
+
+%package xrealmauthz
+Summary: Xrealmauthz policy module for Kerberos 5 KDC
+Group: System Environment/Libraries
+Requires: %{name}-libs%{?_isa} = %{version}-%{release}
+
+%description xrealmauthz
+Kerberos is a network authentication system. The krb5-xrealmauthz
+package contains the xrealmauthz KDC plugin, which allows to configure
+access rules to local realm for client principals from direct or
+transitive cross-realms.
 
 %package -n libkadm5
 Summary: Kerberos 5 Administrative libraries
@@ -710,6 +724,12 @@ exit 0
 %dir %{_libdir}/krb5/plugins/preauth
 %{_libdir}/krb5/plugins/preauth/pkinit.so
 
+%files xrealmauthz
+%dir %{_libdir}/krb5
+%dir %{_libdir}/krb5/plugins
+%dir %{_libdir}/krb5/plugins/kdcpolicy
+%{_libdir}/krb5/plugins/kdcpolicy/xrealmauthz.so
+
 %files devel
 %docdir %{_mandir}
 
@@ -739,9 +759,13 @@ exit 0
 %{_datarootdir}/%{name}-tests/%{_arch}
 
 %changelog
-* Thu Feb 19 2026 Julien Rische <jrische@redhat.com> - 1.21.3-9
+* Fri Jan 30 2026 Julien Rische <jrische@redhat.com> - 1.21.3-9
 - krad: packet ID fetched from uninitialized variable
-  Resolves: RHEL-150954
+  Resolves: RHEL-145356
+- Create sub-package for xrealmauthz KDC plugin
+  Resolves: RHEL-145358
+- Improving kerberos ulog resize efficiency
+  Resolves: RHEL-145397
 
 * Mon Apr 28 2025 Julien Rische <jrische@redhat.com> - 1.21.3-8
 - Do not block HMAC-MD4/5 in FIPS mode

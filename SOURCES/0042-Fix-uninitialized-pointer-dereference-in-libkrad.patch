@@ -1,4 +1,4 @@
-From 18f504cc5d97073fa18fe3b5fb03f90a95d4e74b Mon Sep 17 00:00:00 2001
+From 3565fdbe93c66624a3eeb11caafa5df8fdb5935e Mon Sep 17 00:00:00 2001
 From: Julien Rische <jrische@redhat.com>
 Date: Wed, 21 Jan 2026 11:31:39 +0100
 Subject: [PATCH] Fix uninitialized pointer dereference in libkrad

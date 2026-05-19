@@ -1,0 +1,65 @@
+From f7c234b2f4fa6c892ce8ddee6905b5688d4efd78 Mon Sep 17 00:00:00 2001
+From: Julien Rische <jrische@redhat.com>
+Date: Thu, 29 Jan 2026 19:05:01 +0100
+Subject: [PATCH] [downstream] Install xrealmauthz like other plugins
+
+The xrealmauthz kdcpolicy plugin was merged upstream, but it is not
+installed my the Makefile. The commit adds additional configuration to
+install it in the krb5 modules directory when running "make install".
+
+(cherry picked from commit ee30d1a9193219ce3ba3edc4b84c3db72740af32)
+---
+ src/Makefile.in                               | 2 +-
+ src/config/pre.in                             | 1 +
+ src/plugins/kdcpolicy/xrealmauthz/Makefile.in | 4 +++-
+ 3 files changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/src/Makefile.in b/src/Makefile.in
+index 946a3b7212..b95930d97c 100644
+--- a/src/Makefile.in
++++ b/src/Makefile.in
+@@ -70,7 +70,7 @@ INSTALLMKDIRS = $(KRB5ROOT) $(KRB5MANROOT) $(KRB5OTHERMKDIRS) \
+ 		$(FILE_CATDIR) $(OVERVIEW_CATDIR) \
+ 		$(KRB5_LIBDIR) $(KRB5_INCDIR) \
+ 		$(KRB5_DB_MODULE_DIR) $(KRB5_PA_MODULE_DIR) \
+-		$(KRB5_AD_MODULE_DIR) \
++		$(KRB5_AD_MODULE_DIR) $(KRB5_KP_MODULE_DIR) \
+ 		$(KRB5_LIBKRB5_MODULE_DIR) $(KRB5_TLS_MODULE_DIR) \
+ 		$(localstatedir) $(localstatedir)/krb5kdc \
+ 		$(runstatedir) $(runstatedir)/krb5kdc \
+diff --git a/src/config/pre.in b/src/config/pre.in
+index e9ae71471e..e3f667fed4 100644
+--- a/src/config/pre.in
++++ b/src/config/pre.in
+@@ -219,6 +219,7 @@ MODULE_DIR = @libdir@/krb5/plugins
+ KRB5_DB_MODULE_DIR = $(MODULE_DIR)/kdb
+ KRB5_PA_MODULE_DIR = $(MODULE_DIR)/preauth
+ KRB5_AD_MODULE_DIR = $(MODULE_DIR)/authdata
++KRB5_KP_MODULE_DIR = $(MODULE_DIR)/kdcpolicy
+ KRB5_LIBKRB5_MODULE_DIR = $(MODULE_DIR)/libkrb5
+ KRB5_TLS_MODULE_DIR = $(MODULE_DIR)/tls
+ KRB5_LOCALEDIR = @localedir@
+diff --git a/src/plugins/kdcpolicy/xrealmauthz/Makefile.in b/src/plugins/kdcpolicy/xrealmauthz/Makefile.in
+index 78346d6572..b6740210a7 100644
+--- a/src/plugins/kdcpolicy/xrealmauthz/Makefile.in
++++ b/src/plugins/kdcpolicy/xrealmauthz/Makefile.in
+@@ -1,5 +1,7 @@
+ mydir=plugins$(S)kdcpolicy$(S)xrealmauthz
+ BUILDTOP=$(REL)..$(S)..$(S)..
++KRB5_KP_MODULE_DIR = $(MODULE_DIR)/kdcpolicy
++MODULE_INSTALL_DIR = $(KRB5_KP_MODULE_DIR)
+ 
+ LIBBASE=xrealmauthz
+ LIBMAJOR=0
+@@ -12,7 +14,7 @@ STLIBOBJS=main.o
+ SRCS=$(srcdir)/main.c
+ 
+ all-unix: all-libs
+-install-unix:
++install-unix: install-libs
+ clean-unix:: clean-libs clean-libobjs
+ @libnover_frag@
+ @libobj_frag@
+-- 
+2.51.1
+

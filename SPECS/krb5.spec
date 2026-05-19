@@ -99,7 +99,10 @@ Patch0036: 0036-Don-t-issue-session-keys-with-deprecated-enctypes.patch
 Patch0037: 0037-downstream-Remove-3des-support-cumulative-1.patch
 Patch0038: 0038-Add-PKINIT-paChecksum2-from-MS-PKCA-v20230920.patch
 Patch0039: 0039-downstream-Do-not-block-HMAC-MD4-5-in-FIPS-mode.patch
-Patch0040: 0040-Fix-uninitialized-pointer-dereference-in-libkrad.patch
+Patch0040: 0040-Improve-ulog-block-resize-efficiency.patch
+Patch0041: 0041-Add-xrealmauthz-KDC-policy-module-and-tests.patch
+Patch0042: 0042-Fix-uninitialized-pointer-dereference-in-libkrad.patch
+Patch0043: 0043-downstream-Install-xrealmauthz-like-other-plugins.patch
 
 License: MIT
 URL: https://web.mit.edu/kerberos/www/
@@ -283,6 +286,17 @@ Kerberos is a network authentication system. The krb5-pkinit
 package contains the PKINIT plugin, which allows clients
 to obtain initial credentials from a KDC using a private key and a
 certificate.
+
+%package xrealmauthz
+Summary: Xrealmauthz policy module for Kerberos 5 KDC
+Group: System Environment/Libraries
+Requires: %{name}-libs%{?_isa} = %{version}-%{release}
+
+%description xrealmauthz
+Kerberos is a network authentication system. The krb5-xrealmauthz
+package contains the xrealmauthz KDC plugin, which allows to configure
+access rules to local realm for client principals from direct or
+transitive cross-realms.
 
 %package -n libkadm5
 Summary: Kerberos 5 Administrative libraries
@@ -718,6 +732,12 @@ exit 0
 %dir %{_libdir}/krb5/plugins/preauth
 %{_libdir}/krb5/plugins/preauth/pkinit.so
 
+%files xrealmauthz
+%dir %{_libdir}/krb5
+%dir %{_libdir}/krb5/plugins
+%dir %{_libdir}/krb5/plugins/kdcpolicy
+%{_libdir}/krb5/plugins/kdcpolicy/xrealmauthz.so
+
 %files devel
 %docdir %{_mandir}
 
@@ -747,9 +767,13 @@ exit 0
 %{_datarootdir}/%{name}-tests/%{_arch}
 
 %changelog
-* Thu Feb 19 2026 Julien Rische <jrische@redhat.com> - 1.21.1-9
+* Fri Jan 30 2026 Julien Rische <jrische@redhat.com> - 1.21.1-9
 - krad: packet ID fetched from uninitialized variable
-  Resolves: RHEL-150953
+  Resolves: RHEL-145355
+- Create sub-package for xrealmauthz KDC plugin
+  Resolves: RHEL-67468
+- Improving kerberos ulog resize efficiency
+  Resolves: RHEL-145359
 
 * Fri Apr 18 2025 Julien Rische <jrische@redhat.com> - 1.21.1-8
 - Do not block HMAC-MD4/5 in FIPS mode

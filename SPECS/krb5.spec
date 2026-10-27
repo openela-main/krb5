@@ -38,7 +38,7 @@
 Summary: The Kerberos network authentication system
 Name: krb5
 Version: %{krb5_version}
-Release: %{krb5_release}%{?dist}
+Release: %{krb5_release}%{?dist}.1
 
 # rharwood has trust path to signing key and verifies on check-in
 Source0: https://web.mit.edu/kerberos/dist/krb5/%{krb5_version_major_minor}/krb5-%{krb5_version}%{?krb5_pre_release}.tar.gz
@@ -104,6 +104,7 @@ Patch0041: 0041-Add-xrealmauthz-KDC-policy-module-and-tests.patch
 Patch0042: 0042-Fix-uninitialized-pointer-dereference-in-libkrad.patch
 Patch0043: 0043-downstream-Install-xrealmauthz-like-other-plugins.patch
 Patch0044: 0044-Fix-two-NegoEx-parsing-vulnerabilities.patch
+Patch0045: 0045-Correct-PKINIT-EC-cert-signature-metadata.patch
 
 License: MIT
 URL: https://web.mit.edu/kerberos/www/
@@ -768,6 +769,10 @@ exit 0
 %{_datarootdir}/%{name}-tests/%{_arch}
 
 %changelog
+* Thu Oct 08 2026 Julien Rische <jrische@redhat.com> - 1.21.1-10.1
+- Set PKINIT CMS signatureAlgorithm based on certificate public key type
+  Resolves: RHEL-278058
+
 * Wed Apr 29 2026 Julien Rische <jrische@redhat.com> - 1.21.1-10
 - Fix NegoEx parsing vulnerabilities (CVE-2026-40355, CVE-2026-40356)
   Resolves: RHEL-171590 RHEL-171596

@@ -1,0 +1,161 @@
+From df79d2bd7c21f9fd10991b67d9958ada08ed2004 Mon Sep 17 00:00:00 2001
+From: Alexander Bokovoy <abokovoy@redhat.com>
+Date: Mon, 9 Mar 2026 09:17:08 +0200
+Subject: [PATCH] Add t_s4u test for time_req bounding all delegated-cred
+ tickets
+
+Add --time-req N option to t_s4u and a check_cred_endtimes() function
+that exports the S4U2Self credential to a MEMORY ccache and verifies
+every non-config ticket's endtime is within N seconds of now.
+
+Add a t_s4u.py test case that exercises this with time_req=600 to
+catch regressions where the impersonator TGT escapes the lifetime
+bound.
+
+Signed-off-by: Alexander Bokovoy <abokovoy@redhat.com>
+(cherry picked from commit bbd23bd06efbf31757a0011e303444193df1674e)
+---
+ src/tests/gssapi/t_s4u.c  | 78 +++++++++++++++++++++++++++++++++++++--
+ src/tests/gssapi/t_s4u.py |  5 +++
+ 2 files changed, 80 insertions(+), 3 deletions(-)
+
+diff --git a/src/tests/gssapi/t_s4u.c b/src/tests/gssapi/t_s4u.c
+index 0400f8f61f..c73f187b25 100644
+--- a/src/tests/gssapi/t_s4u.c
++++ b/src/tests/gssapi/t_s4u.c
+@@ -57,6 +57,7 @@
+ #include "common.h"
+ 
+ static int use_spnego = 0;
++static OM_uint32 time_req = GSS_C_INDEFINITE;
+ 
+ static void
+ test_greet_authz_data(gss_name_t *name)
+@@ -122,6 +123,66 @@ init_accept_sec_context(gss_cred_id_t claimant_cred_handle,
+     (void)gss_delete_sec_context(&minor, &acceptor_context, NULL);
+ }
+ 
++/*
++ * Export cred to a MEMORY ccache and verify that every non-config ticket's
++ * endtime is within secs seconds of now.  Used to check that time_req is
++ * honoured for all credentials copied into the delegated-cred ccache (not
++ * just the S4U2Self evidence ticket).
++ */
++static void
++check_cred_endtimes(gss_cred_id_t cred, OM_uint32 secs)
++{
++    krb5_error_code ret;
++    krb5_context context = NULL;
++    krb5_creds kcred;
++    krb5_cc_cursor cur;
++    krb5_ccache ccache;
++    krb5_timestamp now, max_endtime;
++    gss_key_value_set_desc store;
++    gss_key_value_element_desc elem;
++    OM_uint32 major, minor;
++    const char *ccname = "MEMORY:endtime";
++
++    store.count = 1;
++    store.elements = &elem;
++    elem.key = "ccache";
++    elem.value = ccname;
++    major = gss_store_cred_into(&minor, cred, GSS_C_INITIATE, &mech_krb5, 1, 0,
++                                &store, NULL, NULL);
++    check_gsserr("gss_store_cred_into", major, minor);
++
++    ret = krb5_init_context(&context);
++    check_k5err(context, "krb5_init_context", ret);
++
++    ret = krb5_timeofday(context, &now);
++    check_k5err(context, "krb5_timeofday", ret);
++
++    /* Allow 5 seconds of slack for test overhead. */
++    max_endtime = now + (krb5_timestamp)secs + 5;
++
++    ret = krb5_cc_resolve(context, ccname, &ccache);
++    check_k5err(context, "krb5_cc_resolve", ret);
++
++    ret = krb5_cc_start_seq_get(context, ccache, &cur);
++    check_k5err(context, "krb5_cc_start_seq_get", ret);
++
++    while (!krb5_cc_next_cred(context, ccache, &cur, &kcred)) {
++        if (!krb5_is_config_principal(context, kcred.server) &&
++            kcred.times.endtime > max_endtime) {
++            printf("Credential endtime %d exceeds allowed %d (time_req=%u)\n",
++                   (int)kcred.times.endtime, (int)max_endtime, secs);
++            exit(1);
++        }
++        krb5_free_cred_contents(context, &kcred);
++    }
++
++    ret = krb5_cc_end_seq_get(context, ccache, &cur);
++    check_k5err(context, "krb5_cc_end_seq_get", ret);
++
++    krb5_cc_destroy(context, ccache);
++    krb5_free_context(context);
++}
++
+ static void
+ check_ticket_count(gss_cred_id_t cred, int expected)
+ {
+@@ -244,8 +305,8 @@ main(int argc, char *argv[])
+     gss_OID_set mechs;
+     gss_buffer_set_t bufset = GSS_C_NO_BUFFER_SET;
+ 
+-    if (argc < 2 || argc > 5) {
+-        fprintf(stderr, "Usage: %s [--spnego] [user] "
++    if (argc < 2 || argc > 7) {
++        fprintf(stderr, "Usage: %s [--spnego] [--time-req N] user "
+                 "[proxy-target] [keytab]\n", argv[0]);
+         fprintf(stderr, "       proxy-target and keytab are optional\n");
+         exit(1);
+@@ -257,6 +318,12 @@ main(int argc, char *argv[])
+         argv++;
+     }
+ 
++    if (argc > 2 && strcmp(argv[1], "--time-req") == 0) {
++        time_req = (OM_uint32)atol(argv[2]);
++        argc -= 2;
++        argv += 2;
++    }
++
+     user = import_name(argv[1]);
+ 
+     if (argc > 2 && strcmp(argv[2], "-"))
+@@ -281,11 +348,16 @@ main(int argc, char *argv[])
+ 
+     /* Get S4U2Self cred. */
+     major = gss_acquire_cred_impersonate_name(&minor, impersonator_cred_handle,
+-                                              user, GSS_C_INDEFINITE, mechs,
++                                              user, time_req, mechs,
+                                               GSS_C_INITIATE,
+                                               &user_cred_handle, NULL, NULL);
+     check_gsserr("gss_acquire_cred_impersonate_name", major, minor);
+ 
++    /* When a time_req was specified, verify all ccache credentials are
++     * bounded by it, including any TGT copied from the impersonator. */
++    if (time_req != GSS_C_INDEFINITE)
++        check_cred_endtimes(user_cred_handle, time_req);
++
+     init_accept_sec_context(user_cred_handle, impersonator_cred_handle,
+                             &delegated_cred_handle);
+     printf("\n");
+diff --git a/src/tests/gssapi/t_s4u.py b/src/tests/gssapi/t_s4u.py
+index 4a1cdb2355..813e27fc15 100755
+--- a/src/tests/gssapi/t_s4u.py
++++ b/src/tests/gssapi/t_s4u.py
+@@ -113,6 +113,11 @@ if 'auth1: user@' not in out or 'auth2: user@' not in out:
+ # Successful S4U2Self -> S4U2Proxy.
+ out = realm.run(['./t_s4u', puser, pservice2])
+ 
++# Verify that time_req bounds all credentials in the delegated ccache,
++# including the impersonator TGT copied by make_proxy_cred().
++mark('S4U2Self time_req bounds impersonator TGT in delegated ccache')
++realm.run(['./t_s4u', '--time-req', '600', puser, pservice2])
++
+ # Regression test for #8139: get a user ticket directly for service1 and
+ # try krb5 -> S4U2Proxy.
+ realm.kinit(realm.user_princ, None, ['-f', '-k', '-c', usercache,
+-- 
+2.53.0
+

@@ -1,0 +1,70 @@
+From 79d131799c4ec21d7764a6f19d3f9aa3b73cc085 Mon Sep 17 00:00:00 2001
+From: Alexander Bokovoy <abokovoy@redhat.com>
+Date: Sun, 8 Mar 2026 21:50:52 +0200
+Subject: [PATCH] Fix S4U2Self ignoring time_req when acquiring
+ impersonated credentials
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+gss_acquire_cred() for the service locates the existing TGT in the
+ccache and records its KDC-granted endtime as cred->expire; it never
+requests a shorter-lived TGT.  So when gss_acquire_cred_impersonate_name()
+calls kg_impersonate_name() with a time_req, the impersonator TGT already
+carries a KDC-defined lifetime, not the requested one.
+
+kg_impersonate_name() compounds this by zero-initialising in_creds
+(leaving in_creds.times.endtime = 0) and never writing time_req into it.
+When that reaches send_tgs.c:
+
+    req.till = desired->times.endtime ? desired->times.endtime
+                                      : tgt->times.endtime;
+
+the zero endtime causes the fallback to tgt->times.endtime — the
+impersonator TGT's full KDC-granted lifetime.  The KDC therefore issues
+the S4U2Self ticket with KDC-policy lifetime, not the requested time_req.
+
+The subsequent S4U2Proxy request via gss_init_sec_context() gets the
+correct lifetime because that is an entirely separate call with its own
+time_req: kg_new_connection() converts it to an absolute timestamp
+(ctx->krb_times.endtime = ts_incr(now, time_req)) and get_credentials()
+places it into in_creds.times.endtime before calling krb5_get_credentials().
+send_tgs.c then takes the first branch and sends the requested deadline.
+This has nothing to do with what gss_acquire_cred_impersonate_name() did.
+
+Fix kg_impersonate_name() to apply the same time_req-to-endtime
+conversion that kg_new_connection() already performs, so the S4U2Self
+TGS-REQ carries the caller's requested deadline rather than silently
+falling back to the impersonator TGT's full lifetime.
+
+Signed-off-by: Alexander Bokovoy <abokovoy@redhat.com>
+(cherry picked from commit 083f805989b44a1692784618531fe3134c5ed715)
+---
+ src/lib/gssapi/krb5/s4u_gss_glue.c | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/src/lib/gssapi/krb5/s4u_gss_glue.c b/src/lib/gssapi/krb5/s4u_gss_glue.c
+index fa7f980af7..9f2cbebec7 100644
+--- a/src/lib/gssapi/krb5/s4u_gss_glue.c
++++ b/src/lib/gssapi/krb5/s4u_gss_glue.c
+@@ -53,6 +53,17 @@ kg_impersonate_name(OM_uint32 *minor_status,
+     *output_cred = NULL;
+     memset(&in_creds, 0, sizeof(in_creds));
+ 
++    if (time_req != 0 && time_req != GSS_C_INDEFINITE) {
++        krb5_timestamp now;
++
++        code = krb5_timeofday(context, &now);
++        if (code != 0) {
++            *minor_status = code;
++            return GSS_S_FAILURE;
++        }
++        in_creds.times.endtime = ts_incr(now, time_req);
++    }
++
+     if (user->is_cert)
+         subject_cert = user->princ->data;
+     else
+-- 
+2.53.0
+

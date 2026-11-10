@@ -1,4 +1,4 @@
-From 9ec162cb3096bf1c45f7d8cf8bb553c9ea3d910a Mon Sep 17 00:00:00 2001
+From 0523cb0d15e8c3bef3c83d50277f3a964e91b244 Mon Sep 17 00:00:00 2001
 From: Greg Hudson <ghudson@mit.edu>
 Date: Wed, 8 Apr 2026 17:57:59 -0400
 Subject: [PATCH] Fix two NegoEx parsing vulnerabilities

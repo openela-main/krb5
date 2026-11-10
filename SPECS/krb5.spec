@@ -10,7 +10,7 @@
 #
 # baserelease is what we have standardized across Fedora and what
 # rpmdev-bumpspec knows how to handle.
-%global baserelease 10
+%global baserelease 11
 
 # This should be e.g. beta1 or %%nil
 %global pre_release %nil
@@ -101,7 +101,10 @@ Patch0039: 0039-Improve-ulog-block-resize-efficiency.patch
 Patch0040: 0040-Add-xrealmauthz-KDC-policy-module-and-tests.patch
 Patch0041: 0041-Fix-uninitialized-pointer-dereference-in-libkrad.patch
 Patch0042: 0042-downstream-Install-xrealmauthz-like-other-plugins.patch
-Patch0043: 0043-Fix-two-NegoEx-parsing-vulnerabilities.patch
+Patch0043: 0043-Fix-S4U2Self-ignoring-time_req-when-acquiring-impers.patch
+Patch0044: 0044-Fix-S4U2Self-ignoring-time_req-when-copying-imperson.patch
+Patch0045: 0045-Add-t_s4u-test-for-time_req-bounding-all-delegated-c.patch
+Patch0046: 0046-Fix-two-NegoEx-parsing-vulnerabilities.patch
 
 License: Brian-Gladman-2-Clause AND BSD-2-Clause AND (BSD-2-Clause OR GPL-2.0-or-later) AND BSD-2-Clause-first-lines AND BSD-3-Clause AND BSD-4-Clause AND CMU-Mach-nodoc AND FSFULLRWD AND HPND AND HPND-export2-US AND HPND-export-US AND HPND-export-US-acknowledgement AND HPND-export-US-modify AND ISC AND MIT AND MIT-CMU AND OLDAP-2.8 AND OpenVision
 URL: https://web.mit.edu/kerberos/www/
@@ -760,9 +763,13 @@ exit 0
 %{_datarootdir}/%{name}-tests/%{_arch}
 
 %changelog
-* Wed Apr 29 2026 Julien Rische <jrische@redhat.com> - 1.21.3-10
+* Tue Apr 28 2026 Julien Rische <jrische@redhat.com> - 1.21.3-11
 - Fix NegoEx parsing vulnerabilities (CVE-2026-40355, CVE-2026-40356)
-  Resolves: RHEL-171588 RHEL-171597
+  Resolves: RHEL-171587 RHEL-171595
+
+* Mon Mar 23 2026 Julien Rische <jrische@redhat.com> - 1.21.3-10
+- Fix S4U2Self ignoring time_req when acquiring impersonated credentials
+  Resolves: RHEL-155169
 
 * Fri Jan 30 2026 Julien Rische <jrische@redhat.com> - 1.21.3-9
 - krad: packet ID fetched from uninitialized variable

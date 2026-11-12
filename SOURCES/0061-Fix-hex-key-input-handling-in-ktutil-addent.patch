@@ -1,0 +1,64 @@
+From 15256e44d2a3bbe58f56557755899b1d32bf2b97 Mon Sep 17 00:00:00 2001
+From: Tigran Sogomonian <tsogomonian@astralinux.ru>
+Date: Wed, 21 Oct 2026 13:27:03 +0300
+Subject: [PATCH 61/90] Fix hex key input handling in ktutil addent
+
+In ktutil_add(), check the return value of fgets(), and do not assume
+the line contains a newline.
+
+[ghudson@mit.edu: slightly simplified logic; edited commit message]
+
+ticket: 9277 (new)
+tags: pullup
+target_version: 1.22-next
+
+(cherry picked from commit 831e420ee0434377fe8e0c6cc86562b46deb73be)
+---
+ src/kadmin/ktutil/ktutil_funcs.c | 24 ++++++++++++------------
+ 1 file changed, 12 insertions(+), 12 deletions(-)
+
+diff --git a/src/kadmin/ktutil/ktutil_funcs.c b/src/kadmin/ktutil/ktutil_funcs.c
+index e489b5b57a..401c1586e3 100644
+--- a/src/kadmin/ktutil/ktutil_funcs.c
++++ b/src/kadmin/ktutil/ktutil_funcs.c
+@@ -153,7 +153,7 @@ ktutil_add(krb5_context context, krb5_kt_list *list, char *princ_str,
+     char promptstr[1024];
+     char *princ_full = NULL;
+     uint8_t *keybytes;
+-    size_t keylen;
++    size_t keylen, len;
+     unsigned int pwsize = BUFSIZ;
+ 
+     retval = krb5_parse_name(context, princ_str, &princ);
+@@ -203,17 +203,17 @@ ktutil_add(krb5_context context, krb5_kt_list *list, char *princ_str,
+         entry->key = key;
+     } else {
+         printf(_("Key for %s (hex): "), princ_full);
+-        fgets(buf, BUFSIZ, stdin);
+-        /*
+-         * We need to get rid of the trailing '\n' from fgets.
+-         * If we have an even number of hex digits (as we should),
+-         * write a '\0' over the '\n'.  If for some reason we have
+-         * an odd number of hex digits, force an even number of hex
+-         * digits by writing a '0' into the last position (the string
+-         * will still be null-terminated).
+-         */
+-        buf[strlen(buf) - 1] = strlen(buf) % 2 ? '\0' : '0';
+-        if (strlen(buf) == 0) {
++        if (fgets(buf, sizeof(buf), stdin) == NULL)
++            buf[0] = '\0';
++        /* Strip the trailing newline; pad an odd number of hex digits. */
++        len = strcspn(buf, "\n");
++        if (len % 2 && len + 1 < sizeof(buf)) {
++            buf[len] = '0';
++            buf[len + 1] = '\0';
++        } else {
++            buf[len] = '\0';
++        }
++        if (*buf == '\0') {
+             fprintf(stderr, _("addent: Error reading key.\n"));
+             retval = 0;
+             goto cleanup;
+-- 
+2.53.0
+

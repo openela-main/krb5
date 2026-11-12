@@ -1,0 +1,44 @@
+From 7c247c103625b2ce68c1db3373c8426221a40a08 Mon Sep 17 00:00:00 2001
+From: Greg Hudson <ghudson@mit.edu>
+Date: Sat, 17 Oct 2026 10:50:28 -0400
+Subject: [PATCH 84/90] Fix leak on error in xdr_krb5_keyblock()
+
+In xdr_krb5_keyblock(), if xdr_bytes() fails, still assign cp back to
+objp->contents to avoid leaking a potential allocation.
+
+ticket: 9261 (new)
+tags: pullup
+target_version: 1.22-next
+
+(cherry picked from commit d046c3b8ee20d520ab75df3b06e3e480b4cce5ce)
+---
+ src/lib/kadm5/kadm_rpc_xdr.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/src/lib/kadm5/kadm_rpc_xdr.c b/src/lib/kadm5/kadm_rpc_xdr.c
+index 9c02b7105c..0beb29215e 100644
+--- a/src/lib/kadm5/kadm_rpc_xdr.c
++++ b/src/lib/kadm5/kadm_rpc_xdr.c
+@@ -1156,16 +1156,16 @@ bool_t
+ xdr_krb5_keyblock(XDR *xdrs, krb5_keyblock *objp)
+ {
+    char *cp;
++   bool_t r;
+ 
+    /* XXX This only works because free_keyblock assumes ->contents
+       is allocated by malloc() */
+    if(!xdr_krb5_enctype(xdrs, &objp->enctype))
+       return FALSE;
+    cp = (char *)objp->contents;
+-   if (!xdr_bytes(xdrs, &cp, &objp->length, GSSRPC_MAX_ELEMENT_SIZE))
+-      return FALSE;
++   r = xdr_bytes(xdrs, &cp, &objp->length, GSSRPC_MAX_ELEMENT_SIZE);
+    objp->contents = (uint8_t *)cp;
+-   return TRUE;
++   return r;
+ }
+ 
+ bool_t
+-- 
+2.53.0
+

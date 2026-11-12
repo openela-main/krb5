@@ -1,0 +1,73 @@
+From 50c87178d0da857a779c6944dc18bcc63fbaee5e Mon Sep 17 00:00:00 2001
+From: Julien Rische <jrische@redhat.com>
+Date: Fri, 4 Sep 2026 11:30:45 +0200
+Subject: [PATCH 85/90] Fix leaks in lifecycle of RPCSEC_GSS context
+
+In svcauth_gss_accept_sec_context(), if gss_accept_sec_context()
+yields a src_name and returns GSS_S_CONTINUE_NEEDED, free the stored
+gd->cname before making the next call.  If gss_accept_sec_context()
+returns an error for an existing context, do not leak gd->ctx.  In the
+unlikely event that gss_accept_sec_context() returns GSS_S_COMPLETE
+multiple times, release gd->cname before calling gss_display_name()
+again.
+
+In gssrpc__svcauth_gss(), reject RPCSEC_GSS_INIT and
+RPCSEC_GSS_CONTINUE_INIT requests if a context is already established.
+
+[ghudson@mit.edu: added gd->established check; removed change to
+delete existing context on error return; rewrote commit message]
+
+ticket: 9267 (new)
+tags: pullup
+target_version: 1.22-next
+
+(cherry picked from commit 175987641e2ff529d307f6652d897d74c7ff5379)
+---
+ src/lib/rpc/svc_auth_gss.c | 10 +++++++++-
+ 1 file changed, 9 insertions(+), 1 deletion(-)
+
+diff --git a/src/lib/rpc/svc_auth_gss.c b/src/lib/rpc/svc_auth_gss.c
+index af6eb2d959..a93d89fdd1 100644
+--- a/src/lib/rpc/svc_auth_gss.c
++++ b/src/lib/rpc/svc_auth_gss.c
+@@ -197,6 +197,10 @@ svcauth_gss_accept_sec_context(struct svc_req *rqst,
+ 			 (caddr_t)&recv_tok))
+ 		return (FALSE);
+ 
++	/* Release any prior client name from a previous call. */
++	gss_release_name(&min_stat, &gd->client_name);
++	gd->client_name = GSS_C_NO_NAME;
++
+ 	gr->gr_major = gss_accept_sec_context(&gr->gr_minor,
+ 					      &gd->ctx,
+ 					      gd->cred,
+@@ -216,7 +220,6 @@ svcauth_gss_accept_sec_context(struct svc_req *rqst,
+ 	if (gr->gr_major != GSS_S_COMPLETE &&
+ 	    gr->gr_major != GSS_S_CONTINUE_NEEDED) {
+ 		badauth(gr->gr_major, gr->gr_minor, rqst->rq_xprt);
+-		gd->ctx = GSS_C_NO_CONTEXT;
+ 		goto errout;
+ 	}
+ 	gr->gr_ctx.value = "xxxx";
+@@ -236,6 +239,8 @@ svcauth_gss_accept_sec_context(struct svc_req *rqst,
+ 		/* spkm3: no src_name (anonymous) */
+ 		if(!g_OID_equal(gss_mech_spkm3, mech)) {
+ #endif
++		    /* Release any prior name in case we get here twice. */
++		    gss_release_buffer(&min_stat, &gd->cname);
+ 		    maj_stat = gss_display_name(&min_stat, gd->client_name,
+ 					    &gd->cname, &gd->sec.mech);
+ #ifdef SPKM
+@@ -518,6 +523,9 @@ gssrpc__svcauth_gss(struct svc_req *rqst, struct rpc_msg *msg,
+ 		if (!svcauth_gss_acquire_cred(gd))
+ 			ret_freegc (AUTH_FAILED);
+ 
++		if (gd->established)
++			ret_freegc (AUTH_FAILED);
++
+ 		if (!svcauth_gss_accept_sec_context(rqst, &gr))
+ 			ret_freegc (AUTH_REJECTEDCRED);
+ 
+-- 
+2.53.0
+

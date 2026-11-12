@@ -1,0 +1,89 @@
+From c51a4301de3a6cb9d1bfafd4e2af0f860e4905c2 Mon Sep 17 00:00:00 2001
+From: Greg Hudson <ghudson@mit.edu>
+Date: Sat, 24 Oct 2026 20:48:51 -0400
+Subject: [PATCH 52/90] Fix leaks on error in PKINIT signed-data creation
+
+In cms_signeddata_create(), free more allocated variables in the
+cleanup label to prevent them from leaking on error paths.  Also check
+the result of X509_STORE_CTX_get1_chain() before using it, to prevent
+a null dereference on allocation failure.  Reported by Brian Knoll.
+
+ticket: 9271 (new)
+tags: pullup
+target_version: 1.22-next
+
+(cherry picked from commit f01d35b8df208e6b338b82269c1f82829e083220)
+---
+ .../preauth/pkinit/pkinit_crypto_openssl.c    | 19 ++++++++++++-------
+ 1 file changed, 12 insertions(+), 7 deletions(-)
+
+diff --git a/src/plugins/preauth/pkinit/pkinit_crypto_openssl.c b/src/plugins/preauth/pkinit/pkinit_crypto_openssl.c
+index 012dae42a6..ead6bca44f 100644
+--- a/src/plugins/preauth/pkinit/pkinit_crypto_openssl.c
++++ b/src/plugins/preauth/pkinit/pkinit_crypto_openssl.c
+@@ -1698,7 +1698,9 @@ cms_signeddata_create(krb5_context context,
+     PKCS7_SIGNED *p7s = NULL;
+     PKCS7_SIGNER_INFO *p7si = NULL;
+     unsigned char *p;
+-    STACK_OF(X509) * cert_stack = NULL;
++    STACK_OF(X509) *cert_stack = NULL, *certstack = NULL;
++    X509_STORE *certstore = NULL;
++    X509_STORE_CTX *certctx = NULL;
+     ASN1_OCTET_STRING *digest_attr = NULL;
+     EVP_MD_CTX *ctx;
+     unsigned char md_data[EVP_MAX_MD_SIZE], *abuf = NULL;
+@@ -1727,9 +1729,6 @@ cms_signeddata_create(krb5_context context,
+         goto cleanup;
+ 
+     if (id_cryptoctx->my_cert != NULL) {
+-        X509_STORE *certstore = NULL;
+-        X509_STORE_CTX *certctx;
+-        STACK_OF(X509) *certstack = NULL;
+         char buf[DN_BUF_LEN];
+         unsigned int i = 0, size = 0;
+ 
+@@ -1754,6 +1753,8 @@ cms_signeddata_create(krb5_context context,
+             goto cleanup;
+         }
+         certstack = X509_STORE_CTX_get1_chain(certctx);
++        if (certstack == NULL)
++            goto cleanup;
+         size = sk_X509_num(certstack);
+         for (i = 0; i < size - 1; i++) {
+             X509 *x = sk_X509_value(certstack, i);
+@@ -1761,11 +1762,9 @@ cms_signeddata_create(krb5_context context,
+             TRACE_PKINIT_CERT_CHAIN_NAME(context, (int)i, buf);
+             sk_X509_push(cert_stack, X509_dup(x));
+         }
+-        X509_STORE_CTX_free(certctx);
+-        X509_STORE_free(certstore);
+-        sk_X509_pop_free(certstack, X509_free);
+ 
+         p7s->cert = cert_stack;
++        cert_stack = NULL;
+ 
+         /* fill-in PKCS7_SIGNER_INFO */
+         if ((p7si = PKCS7_SIGNER_INFO_new()) == NULL)
+@@ -1851,6 +1850,7 @@ cms_signeddata_create(krb5_context context,
+         /* adder signer_info to pkcs7 signed */
+         if (!PKCS7_add_signer(p7, p7si))
+             goto cleanup2;
++        p7si = NULL;
+     } /* we have a certificate */
+ 
+     /* start on adding data to the pkcs7 signed */
+@@ -1892,6 +1892,11 @@ cleanup2:
+             X509_ALGOR_free(alg);
+     }
+ cleanup:
++    X509_STORE_CTX_free(certctx);
++    X509_STORE_free(certstore);
++    sk_X509_pop_free(cert_stack, X509_free);
++    sk_X509_pop_free(certstack, X509_free);
++    PKCS7_SIGNER_INFO_free(p7si);
+     if (p7 != NULL)
+         PKCS7_free(p7);
+     free(sig);
+-- 
+2.53.0
+

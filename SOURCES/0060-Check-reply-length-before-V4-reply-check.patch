@@ -1,0 +1,276 @@
+From cce7c374052a4f8874b820eafeb3eefdd630becd Mon Sep 17 00:00:00 2001
+From: Alejandro Pacheco <alepacheco99@gmail.com>
+Date: Thu, 15 Oct 2026 14:56:36 +0200
+Subject: [PATCH 60/90] Check reply length before V4 reply check
+
+In init_creds_validate_reply(), a reply that is not a KRB-ERROR or
+AS-REP is examined for a Kerberos 4 error header by checking the first
+two bytes.  A one-byte reply causes a read past the end of the buffer.
+Reject replies shorter than two bytes as the wrong message type before
+looking at the second byte.
+
+Add a test program which feeds short and unrecognized replies to
+krb5_init_creds_step().
+
+[ghudson@mit.edu: updated notice.rst/NOTICE for test program license]
+
+ticket: 9274 (new)
+tags: pullup
+target_version: 1.22-next
+
+(cherry picked from commit 41a1ebfd4d6a74995908f151a0c593311f5c6d83)
+---
+ NOTICE                               | 30 +++++++++
+ doc/notice.rst                       | 33 ++++++++++
+ src/lib/krb5/krb/Makefile.in         | 10 ++-
+ src/lib/krb5/krb/get_in_tkt.c        |  3 +
+ src/lib/krb5/krb/t_init_creds_step.c | 97 ++++++++++++++++++++++++++++
+ 5 files changed, 172 insertions(+), 1 deletion(-)
+ create mode 100644 src/lib/krb5/krb/t_init_creds_step.c
+
+diff --git a/NOTICE b/NOTICE
+index 85ecf5a9bc..fd16386206 100644
+--- a/NOTICE
++++ b/NOTICE
+@@ -1382,3 +1382,33 @@ DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+ PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ PERFORMANCE OF THIS SOFTWARE.
++
++======================================================================
++
++The following notice applies to
++"src/lib/krb5/krb/t_init_creds_step.c":
++
++Copyright (C) 2026 by Alejandro Pacheco. All rights reserved.
++
++Redistribution and use in source and binary forms, with or without
++modification, are permitted provided that the following conditions are
++met:
++
++* Redistributions of source code must retain the above copyright
++  notice, this list of conditions and the following disclaimer.
++
++* Redistributions in binary form must reproduce the above copyright
++  notice, this list of conditions and the following disclaimer in the
++  documentation and/or other materials provided with the distribution.
++
++THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
++"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
++LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
++A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
++HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
++SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
++LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
++DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
++THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
++(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
++OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+diff --git a/doc/notice.rst b/doc/notice.rst
+index 498e287d9c..bcc1843fc4 100644
+--- a/doc/notice.rst
++++ b/doc/notice.rst
+@@ -1269,3 +1269,36 @@ SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION
+ OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
++
++-------------------
++
++The following notice applies to
++``src/lib/krb5/krb/t_init_creds_step.c``:
++
++Copyright (C) 2026 by Alejandro Pacheco.
++All rights reserved.
++
++Redistribution and use in source and binary forms, with or without
++modification, are permitted provided that the following conditions
++are met:
++
++* Redistributions of source code must retain the above copyright
++  notice, this list of conditions and the following disclaimer.
++
++* Redistributions in binary form must reproduce the above copyright
++  notice, this list of conditions and the following disclaimer in
++  the documentation and/or other materials provided with the
++  distribution.
++
++THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
++"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
++LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
++FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
++COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
++INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
++(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
++SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
++HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
++STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
++ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
++OF THE POSSIBILITY OF SUCH DAMAGE.
+diff --git a/src/lib/krb5/krb/Makefile.in b/src/lib/krb5/krb/Makefile.in
+index e4b560fb87..637c80ef68 100644
+--- a/src/lib/krb5/krb/Makefile.in
++++ b/src/lib/krb5/krb/Makefile.in
+@@ -366,6 +366,7 @@ SRCS=	$(srcdir)/addr_comp.c	\
+ 	$(srcdir)/t_cc_config.c	\
+ 	$(srcdir)/t_copy_context.c \
+ 	$(srcdir)/t_in_ccache.c	\
++	$(srcdir)/t_init_creds_step.c \
+ 	$(srcdir)/t_response_items.c \
+ 	$(srcdir)/t_sname_match.c \
+ 	$(srcdir)/t_valid_times.c \
+@@ -464,12 +465,16 @@ t_sname_match: t_sname_match.o sname_match.o $(KRB5_BASE_DEPLIBS)
+ t_valid_times: t_valid_times.o valid_times.o $(KRB5_BASE_DEPLIBS)
+ 	$(CC_LINK) -o $@ t_valid_times.o valid_times.o $(KRB5_BASE_LIBS)
+ 
++t_init_creds_step: t_init_creds_step.o $(KRB5_BASE_DEPLIBS)
++	$(CC_LINK) -o $@ t_init_creds_step.o $(KRB5_BASE_LIBS)
++
+ t_get_etype_info: t_get_etype_info.o $(KRB5_BASE_DEPLIBS)
+ 	$(CC_LINK) -o $@ t_get_etype_info.o $(KRB5_BASE_LIBS)
+ 
+ TEST_PROGS= t_walk_rtree t_kerb t_ser t_deltat t_expand t_authdata t_pac \
+ 	t_in_ccache t_cc_config t_copy_context t_princ t_etypes t_vfy_increds \
+-	t_response_items t_sname_match t_valid_times t_get_etype_info
++	t_response_items t_sname_match t_valid_times t_get_etype_info \
++	t_init_creds_step
+ 
+ check-unix: $(TEST_PROGS) runenv.sh
+ 	$(RUN_TEST_LOCAL_CONF) ./t_kerb \
+@@ -511,6 +516,7 @@ check-unix: $(TEST_PROGS) runenv.sh
+ 	$(RUN_TEST) ./t_copy_context
+ 	$(RUN_TEST) ./t_sname_match
+ 	$(RUN_TEST) ./t_valid_times
++	$(RUN_TEST) ./t_init_creds_step
+ 
+ check-pytests: t_expire_warn t_get_etype_info t_vfy_increds
+ 	$(RUNPYTEST) $(srcdir)/t_expire_warn.py $(PYTESTFLAGS)
+@@ -543,6 +549,8 @@ clean:
+ 	$(OUTPRE)t_valid_times$(EXEEXT) $(OUTPRE)t_valid_times.$(OBJEXT) \
+ 	$(OUTPRE)t_get_etype_info$(EXEEXT) \
+ 	$(OUTPRE)t_get_etype_info.$(OBJEXT) \
++	$(OUTPRE)t_init_creds_step$(EXEEXT) \
++	$(OUTPRE)t_init_creds_step.$(OBJEXT) \
+ 	$(OUTPRE)t_parse_host_string$(EXEEXT) \
+ 	$(OUTPRE)t_parse_host_string.$(OBJEXT)
+ 
+diff --git a/src/lib/krb5/krb/get_in_tkt.c b/src/lib/krb5/krb/get_in_tkt.c
+index ea089f0fcc..dda52a06ee 100644
+--- a/src/lib/krb5/krb/get_in_tkt.c
++++ b/src/lib/krb5/krb/get_in_tkt.c
+@@ -1119,6 +1119,9 @@ init_creds_validate_reply(krb5_context context,
+         /* check here for V4 reply */
+         unsigned int t_switch;
+ 
++        if (reply->length < 2)
++            return KRB5KRB_AP_ERR_MSG_TYPE;
++
+         /* From v4 g_in_tkt.c: This used to be
+            switch (pkt_msg_type(rpkt) & ~1) {
+            but SCO 3.2v4 cc compiled that incorrectly.  */
+diff --git a/src/lib/krb5/krb/t_init_creds_step.c b/src/lib/krb5/krb/t_init_creds_step.c
+new file mode 100644
+index 0000000000..205afa565c
+--- /dev/null
++++ b/src/lib/krb5/krb/t_init_creds_step.c
+@@ -0,0 +1,97 @@
++/* -*- mode: c; c-basic-offset: 4; indent-tabs-mode: nil -*- */
++/* lib/krb5/krb/t_init_creds_step.c - test krb5_init_creds_step() replies */
++/*
++ * Copyright (C) 2026 by Alejandro Pacheco.
++ * All rights reserved.
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions
++ * are met:
++ *
++ * * Redistributions of source code must retain the above copyright
++ *   notice, this list of conditions and the following disclaimer.
++ *
++ * * Redistributions in binary form must reproduce the above copyright
++ *   notice, this list of conditions and the following disclaimer in
++ *   the documentation and/or other materials provided with the
++ *   distribution.
++ *
++ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
++ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
++ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
++ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
++ * COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
++ * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
++ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
++ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
++ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
++ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
++ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
++ * OF THE POSSIBILITY OF SUCH DAMAGE.
++ */
++
++/*
++ * Feed short or unrecognized KDC replies to krb5_init_creds_step() and check
++ * that they are rejected with the expected error code.
++ */
++
++#include "k5-int.h"
++
++static void
++check_reply(krb5_context context, krb5_principal client,
++            const char *bytes, size_t len, krb5_error_code expected)
++{
++    krb5_error_code ret;
++    krb5_init_creds_context icc;
++    krb5_data reply, request, realm;
++    unsigned int flags;
++
++    ret = krb5_init_creds_init(context, client, NULL, NULL, 0, NULL, &icc);
++    assert(!ret);
++
++    reply = empty_data();
++    ret = krb5_init_creds_step(context, icc, &reply, &request, &realm, &flags);
++    assert(!ret);
++    assert(flags == KRB5_INIT_CREDS_STEP_FLAG_CONTINUE);
++    krb5_free_data_contents(context, &request);
++    krb5_free_data_contents(context, &realm);
++
++    /* Allocate exactly len bytes, as a KDC reply buffer would be. */
++    reply.data = malloc(len);
++    assert(reply.data != NULL);
++    memcpy(reply.data, bytes, len);
++    reply.length = len;
++    ret = krb5_init_creds_step(context, icc, &reply, &request, &realm, &flags);
++    assert(ret == expected);
++
++    free(reply.data);
++    krb5_free_data_contents(context, &request);
++    krb5_free_data_contents(context, &realm);
++    krb5_init_creds_free(context, icc);
++}
++
++int
++main(void)
++{
++    krb5_error_code ret;
++    krb5_context context;
++    krb5_principal client;
++
++    ret = krb5_init_context(&context);
++    assert(!ret);
++    ret = krb5_parse_name(context, "user@KRBTEST.COM", &client);
++    assert(!ret);
++
++    /* A one-byte reply is too short to be a V4 error reply. */
++    check_reply(context, client, "\x04", 1, KRB5KRB_AP_ERR_MSG_TYPE);
++
++    /* A V4 error reply is recognized as such. */
++    check_reply(context, client, "\x04\x0a", 2, KRB5KRB_AP_ERR_V4_REPLY);
++
++    /* Other non-AS-REP replies are rejected as the wrong message type. */
++    check_reply(context, client, "\x05\x0a", 2, KRB5KRB_AP_ERR_MSG_TYPE);
++
++    krb5_free_principal(context, client);
++    krb5_free_context(context);
++    return 0;
++}
+-- 
+2.53.0
+

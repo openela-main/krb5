@@ -1,0 +1,53 @@
+From 62e077cc5e5096463c1a81d9943883cb0645c9d6 Mon Sep 17 00:00:00 2001
+From: Greg Hudson <ghudson@mit.edu>
+Date: Sun, 2 Aug 2026 21:44:11 -0400
+Subject: [PATCH 64/90] Prevent null dereference in PKINIT CMS processing
+
+In cms_signeddata_verify(), where we use CMS_get0_content(), check
+that the dereferenced result is non-null as well as the result itself.
+(The result itself is a pointer to the eContent slot, whether or not
+the decoded ASN.1 value contained an eContent field, and will only be
+null if the CMS_ContentInfo object has an unexpected type.)
+
+CVE-2026-71200:
+
+If a KDC is configured to allow PKINIT authentication, an
+unauthenticated attacker can trigger a null pointer dereference,
+causing the process to terminate.  Discovered by Claude and Ada
+Logics, and independently by Erin Liman using DeepSeek.
+
+ticket: 9227 (new)
+tags: pullup
+target_version: 1.22-next
+
+(cherry picked from commit 30544af7da0a3469c3e58c2a1a5bdf8a97284717)
+---
+ src/plugins/preauth/pkinit/pkinit_crypto_openssl.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/src/plugins/preauth/pkinit/pkinit_crypto_openssl.c b/src/plugins/preauth/pkinit/pkinit_crypto_openssl.c
+index ead6bca44f..b85d31b5e0 100644
+--- a/src/plugins/preauth/pkinit/pkinit_crypto_openssl.c
++++ b/src/plugins/preauth/pkinit/pkinit_crypto_openssl.c
+@@ -1988,7 +1988,8 @@ cms_signeddata_verify(krb5_context context,
+         unsigned char *d;
+         *is_signed = 0;
+         octets = CMS_get0_content(cms);
+-        if (!octets || ((*octets)->type != V_ASN1_OCTET_STRING)) {
++        if (octets == NULL || *octets == NULL ||
++            ((*octets)->type != V_ASN1_OCTET_STRING)) {
+             retval = KRB5KDC_ERR_PREAUTH_FAILED;
+             krb5_set_error_message(context, retval,
+                                    _("Invalid pkinit packet: octet string "
+@@ -2043,7 +2044,7 @@ cms_signeddata_verify(krb5_context context,
+         *is_signed = 0;
+         /* We cannot use CMS_dataInit because there may be no digest */
+         octets = CMS_get0_content(cms);
+-        if (octets)
++        if (octets != NULL && *octets != NULL)
+             out = BIO_new_mem_buf((*octets)->data, (*octets)->length);
+         if (out == NULL)
+             goto cleanup;
+-- 
+2.53.0
+

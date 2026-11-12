@@ -1,0 +1,80 @@
+From 7bed823bd1d3807d2fe1488fd53abe29760ce8ff Mon Sep 17 00:00:00 2001
+From: Julien Rische <jrische@redhat.com>
+Date: Fri, 4 Sep 2026 11:43:23 +0200
+Subject: [PATCH 86/90] Fix leak on error in xdr_krb5_principal()
+
+In xdr_krb5_principal(), use a cleanup handler to ensure that the
+result of krb5_unparse_name() or xdr_nullstring() is freed.
+
+[ghudson@mit.edu: rewrote commit message; made cleanup free() call
+unconditional]
+
+ticket: 9262 (new)
+tags: pullup
+target_version: 1.22-next
+
+(cherry picked from commit 1779e4a3d6edbf0c641349953adb42304ed8bb86)
+---
+ src/lib/kadm5/kadm_rpc_xdr.c | 19 +++++++++++--------
+ 1 file changed, 11 insertions(+), 8 deletions(-)
+
+diff --git a/src/lib/kadm5/kadm_rpc_xdr.c b/src/lib/kadm5/kadm_rpc_xdr.c
+index 0beb29215e..1a0836f70b 100644
+--- a/src/lib/kadm5/kadm_rpc_xdr.c
++++ b/src/lib/kadm5/kadm_rpc_xdr.c
+@@ -1089,33 +1089,32 @@ xdr_krb5_principal(XDR *xdrs, krb5_principal *objp)
+     char	    *p = NULL;
+     krb5_principal  pr = NULL;
+     static krb5_context context = NULL;
++    bool_t success = FALSE;
+ 
+     /* using a static context here is ugly, but should work
+        ok, and the other solutions are even uglier */
+ 
+     if (!context &&
+ 	kadm5_init_krb5_context(&context))
+-       return(FALSE);
++       goto cleanup;
+ 
+     switch(xdrs->x_op) {
+     case XDR_ENCODE:
+ 	if (*objp) {
+ 	     if((ret = krb5_unparse_name(context, *objp, &p)) != 0)
+-		  return FALSE;
++		  goto cleanup;
+ 	}
+ 	if(!xdr_nullstring(xdrs, &p))
+-	    return FALSE;
+-	if (p) free(p);
++	    goto cleanup;
+ 	break;
+     case XDR_DECODE:
+ 	if(!xdr_nullstring(xdrs, &p))
+-	    return FALSE;
++	    goto cleanup;
+ 	if (p) {
+ 	     ret = krb5_parse_name(context, p, &pr);
+ 	     if(ret != 0)
+-		  return FALSE;
++		  goto cleanup;
+ 	     *objp = pr;
+-	     free(p);
+ 	} else
+ 	     *objp = NULL;
+ 	break;
+@@ -1125,7 +1124,11 @@ xdr_krb5_principal(XDR *xdrs, krb5_principal *objp)
+ 	*objp = NULL;
+ 	break;
+     }
+-    return TRUE;
++    success = TRUE;
++
++cleanup:
++    free(p);
++    return success;
+ }
+ 
+ bool_t
+-- 
+2.53.0
+

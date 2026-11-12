@@ -1,0 +1,41 @@
+From 8c907232dfe8d33349ce28e1abe93e08078c8993 Mon Sep 17 00:00:00 2001
+From: Rahul Hoysala <rahulhoysala07@gmail.com>
+Date: Thu, 4 Jun 2026 13:14:45 +0530
+Subject: [PATCH 49/90] Avoid another null dereference in krb5_rd_cred()
+
+In RFC 4120, the ticket client and server principal names are optional
+in KrbCredInfo, but we have always required them to be present.  Add
+checks to prevent null dereferences in krb5_rd_cred() if either name
+is not specified.
+
+[ghudson@mit.edu: folded check in with the end-of-list check; rewrote
+comment and commit message]
+
+ticket: 9219 (new)
+tags: pullup
+target_version: 1.22-next
+
+(cherry picked from commit 5031b854ad8ba6cce20cdd8c991f81dbc3f924bd)
+---
+ src/lib/krb5/krb/rd_cred.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/src/lib/krb5/krb/rd_cred.c b/src/lib/krb5/krb/rd_cred.c
+index c341eba153..80d49fd8b1 100644
+--- a/src/lib/krb5/krb/rd_cred.c
++++ b/src/lib/krb5/krb/rd_cred.c
+@@ -98,8 +98,9 @@ make_cred_list(krb5_context context, krb5_cred *krbcred,
+             goto cleanup;
+ 
+         info = encpart->ticket_info[i];
+-        if (info == NULL) {
+-            /* We unexpectedly reached the end of the encrypted ticket info. */
++        if (info == NULL || info->client == NULL || info->server == NULL) {
++            /* We unexpectedly reached the end of the encrypted ticket info,
++             * or the ticket info is unexpectedly missing a principal name. */
+             ret = KRB5KRB_AP_ERR_MODIFIED;
+             goto cleanup;
+         }
+-- 
+2.53.0
+

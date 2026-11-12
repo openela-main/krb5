@@ -38,7 +38,7 @@
 Summary: The Kerberos network authentication system
 Name: krb5
 Version: %{krb5_version}
-Release: %{krb5_release}%{?dist}
+Release: %{krb5_release}%{?dist}.2
 
 # rharwood has trust path to signing key and verifies on check-in
 Source0: https://web.mit.edu/kerberos/dist/krb5/%{krb5_version_major_minor}/krb5-%{krb5_version}%{?krb5_pre_release}.tar.gz
@@ -105,6 +105,50 @@ Patch0043: 0043-Fix-S4U2Self-ignoring-time_req-when-acquiring-impers.patch
 Patch0044: 0044-Fix-S4U2Self-ignoring-time_req-when-copying-imperson.patch
 Patch0045: 0045-Add-t_s4u-test-for-time_req-bounding-all-delegated-c.patch
 Patch0046: 0046-Fix-two-NegoEx-parsing-vulnerabilities.patch
+Patch0047: 0047-Correct-PKINIT-EC-cert-signature-metadata.patch
+Patch0048: 0048-Avoid-null-dereference-in-krb5_rd_cred.patch
+Patch0049: 0049-Avoid-another-null-dereference-in-krb5_rd_cred.patch
+Patch0050: 0050-Check-for-empty-forwarded-creds-in-krb5-GSS-mech.patch
+Patch0051: 0051-Fix-error-handling-in-KDC-PAC-processing.patch
+Patch0052: 0052-Fix-leaks-on-error-in-PKINIT-signed-data-creation.patch
+Patch0053: 0053-Pass-through-null-deleg_cred-from-SPNEGO-to-mech.patch
+Patch0054: 0054-Skip-expired-keys-when-iterating-a-KEYRING-ccache.patch
+Patch0055: 0055-Improve-libdb2-data-validation.patch
+Patch0056: 0056-Fix-two-KDB-data-validation-issues.patch
+Patch0057: 0057-Validate-lengths-when-deserializing-profiles.patch
+Patch0058: 0058-Correctly-abort-parse-on-invalid-JSON-array.patch
+Patch0059: 0059-Fix-memory-leak-in-mpool_get-error-paths.patch
+Patch0060: 0060-Check-reply-length-before-V4-reply-check.patch
+Patch0061: 0061-Fix-hex-key-input-handling-in-ktutil-addent.patch
+Patch0062: 0062-Fix-minor-ksu-memory-leak.patch
+Patch0063: 0063-Prevent-unsigned-integer-overflow-in-IAKERB.patch
+Patch0064: 0064-Prevent-null-dereference-in-PKINIT-CMS-processing.patch
+Patch0065: 0065-Check-for-keyed-checksums-in-CAMMAC-verifiers.patch
+Patch0066: 0066-Exclude-nested-AD-IF-RELEVANT-authdata-in-KDC.patch
+Patch0067: 0067-Prevent-read-overruns-in-GSSRPC-svcauth_unix.patch
+Patch0068: 0068-Prevent-null-deref-in-KDC-dispatch-corner-case.patch
+Patch0069: 0069-Check-type-of-otherName-value-in-PKINIT-SAN-code.patch
+Patch0070: 0070-Prevent-KDC-read-overrun-in-ASN.1-decoder.patch
+Patch0071: 0071-Enforce-lockdown-bit-in-password-change-server.patch
+Patch0072: 0072-Check-PAC-server-checksum-verification-result.patch
+Patch0073: 0073-Consolidate-krb5-GSS-cred-cleanup.patch
+Patch0074: 0074-Fix-leak-on-krb5-gss_accept_sec_context-failure.patch
+Patch0075: 0075-Properly-verify-RPCSEC_GSS-call-arguments.patch
+Patch0076: 0076-Disable-GSSRPC-AUTH_GSSAPI-flavor-by-default.patch
+Patch0077: 0077-Free-call_arg-on-all-AUTH_GSSAPI-exit-paths.patch
+Patch0078: 0078-Fix-RPC-leak-when-client-switches-from-RPCSEC_GSS.patch
+Patch0079: 0079-Enforce-XDR-decode-size-limits.patch
+Patch0080: 0080-Free-partial-tl-data-on-XDR-decode-failure.patch
+Patch0081: 0081-Fix-leaks-when-decoding-GSS-buffers-in-libgssrpc.patch
+Patch0082: 0082-Fix-leak-in-RPC-client-on-mismatched-ID.patch
+Patch0083: 0083-Fix-memory-leak-in-auth_gssapi_wrap_data.patch
+Patch0084: 0084-Fix-leak-on-error-in-xdr_krb5_keyblock.patch
+Patch0085: 0085-Fix-leaks-in-lifecycle-of-RPCSEC_GSS-context.patch
+Patch0086: 0086-Fix-leak-on-error-in-xdr_krb5_principal.patch
+Patch0087: 0087-Fix-leak-on-error-in-process_chpw_request.patch
+Patch0088: 0088-Prevent-null-dereferences-in-kadmind-server-stubs.patch
+Patch0089: 0089-Avoid-repeated-reallocation-when-decoding-ASN.1.patch
+Patch0090: 0090-Fix-leak-on-error-in-krb5_ktkdb_get_entry.patch
 
 License: Brian-Gladman-2-Clause AND BSD-2-Clause AND (BSD-2-Clause OR GPL-2.0-or-later) AND BSD-2-Clause-first-lines AND BSD-3-Clause AND BSD-4-Clause AND CMU-Mach-nodoc AND FSFULLRWD AND HPND AND HPND-export2-US AND HPND-export-US AND HPND-export-US-acknowledgement AND HPND-export-US-modify AND ISC AND MIT AND MIT-CMU AND OLDAP-2.8 AND OpenVision
 URL: https://web.mit.edu/kerberos/www/
@@ -763,6 +807,92 @@ exit 0
 %{_datarootdir}/%{name}-tests/%{_arch}
 
 %changelog
+* Tue Nov 03 2026 Julien Rische <jrische@redhat.com> - 1.21.3-11.2
+- KDC unauthenticated memory leak DoS in KDB keytab key decryption error path (CVE-2026-112317)
+  Resolves: RHEL-292715
+- KDC unauthenticated CPU DoS via quadratic ASN.1 SEQUENCE OF decoding (CVE-2026-119079)
+  Resolves: RHEL-297098
+- kadmind authenticated DoS exploiting dereference of null policy name pointers (CVE-2026-112318)
+  Resolves: RHEL-292692
+- process_chpw_request leak
+  Resolves: RHEL-296056
+- xdr_krb5_principal decode leak
+  Resolves: RHEL-296045
+- RPCSEC_GSS context lifecycle leaks
+  Resolves: RHEL-296034
+- xdr_bytes() does not free its allocation on partial decode failure
+  Resolves: RHEL-296023
+- auth_gssapi_wrap_data xdr_bytes failure leak
+  Resolves: RHEL-296012
+- GSS-RPC client memory leak on XID mismatch retries (CVE-2026-112314)
+  Resolves: RHEL-292757
+- kadmind unauthenticated memory leak DoS in RPCSEC_GSS buffer decode failure (CVE-2026-112315)
+  Resolves: RHEL-292760
+- kadmind authenticated memory leak DoS in xdr_krb5_tl_data() decode failure (CVE-2026-112316)
+  Resolves: RHEL-292750
+- kadmind authenticated memory exhaustion DoS via unbounded RPC XDR allocation (CVE-2026-112319)
+  Resolves: RHEL-292686
+- kadmind unauthenticated memory leak DoS via GSS-RPC auth flavor switching (CVE-2026-112320)
+  Resolves: RHEL-292667
+- kadmind unauthenticated memory leak DoS via AUTH_GSSAPI_INIT error paths (CVE-2026-112321)
+  Resolves: RHEL-292650
+- kadmind unauthenticated CPU DoS via AUTH_GSSAPI client states cleanup (CVE-2026-112322)
+  Resolves: RHEL-292634
+- kadmind unauthenticated memory exhaustion via failed AUTH_GSSAPI_INIT requests (CVE-2026-112323)
+  Resolves: RHEL-292613
+- kadmind: request alteration and protected information disclosure (CVE-2026-118380)
+  Resolves: RHEL-297067
+- Memory leak on krb5 gss_accept_sec_context() failure
+  Resolves: RHEL-296112
+- Improper authorization via flawed PAC checksum verification (CVE-2026-111423)
+  Resolves: RHEL-297170
+- Unauthorized key reset of protected principal via kpasswd (CVE-2026-107884)
+  Resolves: RHEL-296175
+- Unauthenticated KDC DoS based on ASN.1 decoder read overrun (CVE-2026-107364)
+  Resolves: RHEL-303617
+- KDC DoS based on otherName value in PKINIT SAN code
+  Resolves: RHEL-296095
+- Null dereference in KDC dispatch corner case
+  Resolves: RHEL-296081
+- Read overruns in GSSRPC svcauth_unix
+  Resolves: RHEL-296067
+- KDC authdata filter does not catch KDC-issued types nested inside AD-IF-RELEVANT containers
+  Resolves: RHEL-296127
+- Alteration of authentication indicators in CAMMAC container (CVE-2026-71199)
+  Resolves: RHEL-297148
+- Unauthenticated KDC NULL pointer dereference KDC DoS via crafted PKINIT pre-auth request (CVE-2026-71200)
+  Resolves: RHEL-296768
+- Prevent unsigned int overflow in iakerb_save_token()
+  Resolves: RHEL-299152
+- Fix ksu memory leak in fcmd_resolve()
+  Resolves: RHEL-299153
+- Fix hex key input handling in ktutil addent
+  Resolves: RHEL-299148
+- Check reply length before V4 reply check
+  Resolves: RHEL-299149
+- Fix memory leak in mpool_get() error paths
+  Resolves: RHEL-299150
+- json: Correctly abort parse on invalid array
+  Resolves: RHEL-299151
+- Fix validation issues for trusted inputs
+  Resolves: RHEL-299144
+- Skip expired keys when iterating over KEYRING ccache
+  Resolves: RHEL-299145
+- Pass through null deleg_cred from SPNEGO to mech
+  Resolves: RHEL-299146
+- Fix leaks on error in PKINIT signed-data creation
+  Resolves: RHEL-299147
+- Denial of Service via malformed PAC in S4U2Proxy requests (CVE-2026-107708)
+  Resolves: RHEL-295896
+- Dereference of empty first credential list element in GSS mechanism
+  Resolves: RHEL-296997
+- Null dereference of principal names in krb5_rd_cred()
+  Resolves: RHEL-297000
+- Denial of Service via crafted forwarded credentials (CVE-2026-107778)
+  Resolves: RHEL-296124
+- Set PKINIT CMS signatureAlgorithm based on certificate public key type
+  Resolves: RHEL-278063
+
 * Tue Apr 28 2026 Julien Rische <jrische@redhat.com> - 1.21.3-11
 - Fix NegoEx parsing vulnerabilities (CVE-2026-40355, CVE-2026-40356)
   Resolves: RHEL-171587 RHEL-171595

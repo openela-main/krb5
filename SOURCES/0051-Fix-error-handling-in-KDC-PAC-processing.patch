@@ -1,0 +1,43 @@
+From e3063857854cfaac7275ba350612900347c73ac5 Mon Sep 17 00:00:00 2001
+From: TristanInSec <tristan.mtn@gmail.com>
+Date: Mon, 18 May 2026 11:56:34 -0400
+Subject: [PATCH 51/90] Fix error handling in KDC PAC processing
+
+When get_pac_princ_with_realm() detects the wrong number of '@'
+characters, return an error instead of 0.  When it encounters an error
+from krb5_parse_name_flags(), do not leak client_str.
+
+[ghudson@mit.edu: fixed memory leak; rewrote commit message]
+
+ticket: 9212 (new)
+tags: pullup
+target_version: 1.22-next
+
+(cherry picked from commit f6e2c397ceda6467ebbaab8ed66d4895c9f1d6a7)
+---
+ src/kdc/kdc_util.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/kdc/kdc_util.c b/src/kdc/kdc_util.c
+index bafcf5f728..8931aa9908 100644
+--- a/src/kdc/kdc_util.c
++++ b/src/kdc/kdc_util.c
+@@ -679,13 +679,13 @@ get_pac_princ_with_realm(krb5_context context, krb5_pac pac,
+ 
+     ret = krb5_parse_name_flags(context, client_str, flags, princ_out);
+     if (ret)
+-        return ret;
++        goto cleanup;
+ 
+     (*princ_out)->type = KRB5_NT_MS_PRINCIPAL;
+ 
+ cleanup:
+     free(client_str);
+-    return 0;
++    return ret;
+ }
+ 
+ /* This probably wants to be updated if you support last_req stuff */
+-- 
+2.53.0
+

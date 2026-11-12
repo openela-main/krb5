@@ -1,0 +1,59 @@
+From 3d56923d2f88d2fdd89ecbae30e64c542cf362cc Mon Sep 17 00:00:00 2001
+From: Bogdan Boguslavskij <bogdanb@altlinux.org>
+Date: Fri, 4 Sep 2026 12:46:23 +0300
+Subject: [PATCH 56/90] Fix two KDB data validation issues
+
+In the LMDB KDB module, fix a bug in klmdb_decode_princ() that
+renders the key_data_ver validity check inoperable.
+
+In the DB2 KDB module, bounds-check entry->e_length against the
+remaining record data, and decrease sizeleft when we increase nextloc.
+
+[ghudson@mit.edu: combined two commits and rewrote commit message]
+
+ticket: 9250 (new)
+tags: pullup
+target_version: 1.22-next
+
+(cherry picked from commit 48adb434dfd4807fc84187e46bf09ef4ee42377c)
+---
+ src/plugins/kdb/db2/kdb_xdr.c  | 5 +++++
+ src/plugins/kdb/lmdb/marshal.c | 2 +-
+ 2 files changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/src/plugins/kdb/db2/kdb_xdr.c b/src/plugins/kdb/db2/kdb_xdr.c
+index 054a87a37e..b4666a95bc 100644
+--- a/src/plugins/kdb/db2/kdb_xdr.c
++++ b/src/plugins/kdb/db2/kdb_xdr.c
+@@ -313,10 +313,15 @@ krb5_decode_princ_entry(krb5_context context, krb5_data *content,
+     /* Check for extra data */
+     if (entry->len > KRB5_KDB_V1_BASE_LENGTH) {
+         entry->e_length = entry->len - KRB5_KDB_V1_BASE_LENGTH;
++        if (entry->e_length > (size_t)sizeleft) {
++            retval = KRB5_KDB_TRUNCATED_RECORD;
++            goto error_out;
++        }
+         entry->e_data = k5memdup(nextloc, entry->e_length, &retval);
+         if (entry->e_data == NULL)
+             goto error_out;
+         nextloc += entry->e_length;
++        sizeleft -= entry->e_length;
+     }
+ 
+     /*
+diff --git a/src/plugins/kdb/lmdb/marshal.c b/src/plugins/kdb/lmdb/marshal.c
+index 433bb816db..5aab37491d 100644
+--- a/src/plugins/kdb/lmdb/marshal.c
++++ b/src/plugins/kdb/lmdb/marshal.c
+@@ -215,7 +215,7 @@ klmdb_decode_princ(krb5_context context, const void *key, size_t key_len,
+         kd = &entry->key_data[i];
+         kd->key_data_ver = k5_input_get_uint16_le(&in);
+         kd->key_data_kvno = k5_input_get_uint16_le(&in);
+-        if (kd->key_data_ver < 0 &&
++        if (kd->key_data_ver < 0 ||
+             kd->key_data_ver > KRB5_KDB_V1_KEY_DATA_ARRAY) {
+             ret = KRB5_KDB_BAD_VERSION;
+             goto cleanup;
+-- 
+2.53.0
+

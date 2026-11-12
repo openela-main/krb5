@@ -1,0 +1,302 @@
+From c313f615dd07ae9cd90dafaae2a64566e5fea48b Mon Sep 17 00:00:00 2001
+From: Bogdan Boguslavskij <bogdanb@altlinux.org>
+Date: Mon, 5 Oct 2026 21:25:42 -0400
+Subject: [PATCH 55/90] Improve libdb2 data validation
+
+In the btree module, make __bt_pgin() bounds-check h->lower and reset
+the page to empty if it is not within the allowable range.  Change the
+definition of NEXTINDEX to clamp the result lower bound to 0, so that
+it can't return an enormous offset due to unsigned underflow.  In
+__bt_search() and __bt_seqset(), detect when we fill the parent page
+stack (because the database is circular or the tree is unexpectedly
+imbalanced) and return an error.
+
+In the hash module, make __kdb2_hash_open() reject a block size of
+zero to prevent division by zero, and reject an invalid overflow
+pointer to prevent an out-of-bounds memory access.  Prevent unbounded
+recursion in collect_key() and collect_data() by adding a depth
+counter and limiting it to max_bucket.  Prevent out-of-bounds access
+in __pgin_routine() by bounds-checking num_ent for non-bitmap pages.
+
+[ghudson@mit.edu: combined several commits and rewrote commit message;
+simplified __bt_pgin() bounds check and made it leave h->lower == 0
+alone for nroot(); added checks for full parent page stack; made minor
+edits for code style]
+
+ticket: 9249 (new)
+tags: pullup
+target_version: 1.22-next
+
+(cherry picked from commit 64470b21a544f1619673373c74efd96c99778028)
+---
+ src/plugins/kdb/db2/libdb2/btree/bt_conv.c    | 10 +++++++-
+ src/plugins/kdb/db2/libdb2/btree/bt_search.c  |  2 ++
+ src/plugins/kdb/db2/libdb2/btree/bt_seq.c     |  8 +++++++
+ src/plugins/kdb/db2/libdb2/btree/btree.h      |  8 +++++--
+ src/plugins/kdb/db2/libdb2/hash/hash.c        |  8 ++++++-
+ src/plugins/kdb/db2/libdb2/hash/hash_bigkey.c | 23 +++++++++++--------
+ src/plugins/kdb/db2/libdb2/hash/hash_page.c   | 13 +++++++++++
+ 7 files changed, 59 insertions(+), 13 deletions(-)
+
+diff --git a/src/plugins/kdb/db2/libdb2/btree/bt_conv.c b/src/plugins/kdb/db2/libdb2/btree/bt_conv.c
+index 99c4af56c0..cf3077b8e6 100644
+--- a/src/plugins/kdb/db2/libdb2/btree/bt_conv.c
++++ b/src/plugins/kdb/db2/libdb2/btree/bt_conv.c
+@@ -61,13 +61,14 @@ static void mswap __P((PAGE *));
+ void
+ __bt_pgin(void *t, db_pgno_t pg, void *pp)
+ {
++	BTREE *bt = t;
+ 	PAGE *h;
+ 	indx_t i, top;
+ 	u_char flags;
+ 	char *p;
+ 	u_int32_t ksize;
+ 
+-	if (!F_ISSET(((BTREE *)t), B_NEEDSWAP))
++	if (!F_ISSET(bt, B_NEEDSWAP))
+ 		return;
+ 	if (pg == P_META) {
+ 		mswap(pp);
+@@ -82,6 +83,13 @@ __bt_pgin(void *t, db_pgno_t pg, void *pp)
+ 	M_16_SWAP(h->lower);
+ 	M_16_SWAP(h->upper);
+ 
++	/* Do nothing if the page appears uninitialized (h->lower == 0).  Treat
++	 * the page as having no entries if h->lower is invalid. */
++	if (h->lower < BTDATAOFF || h->lower > bt->bt_psize) {
++		h->lower = (h->lower == 0) ? 0 : BTDATAOFF;
++		return;
++	}
++
+ 	top = NEXTINDEX(h);
+ 	if ((h->flags & P_TYPE) == P_BINTERNAL)
+ 		for (i = 0; i < top; i++) {
+diff --git a/src/plugins/kdb/db2/libdb2/btree/bt_search.c b/src/plugins/kdb/db2/libdb2/btree/bt_search.c
+index ed512ccb65..87883d24a7 100644
+--- a/src/plugins/kdb/db2/libdb2/btree/bt_search.c
++++ b/src/plugins/kdb/db2/libdb2/btree/bt_search.c
+@@ -128,6 +128,8 @@ __bt_search(BTREE *t, const DBT *key, int *exactp)
+ next:		BT_PUSH(t, h->pgno, idx);
+ 		pg = GETBINTERNAL(h, idx)->pgno;
+ 		mpool_put(t->bt_mp, h, 0);
++		if (BT_STACKFULL(t))
++			return (NULL);
+ 	}
+ }
+ 
+diff --git a/src/plugins/kdb/db2/libdb2/btree/bt_seq.c b/src/plugins/kdb/db2/libdb2/btree/bt_seq.c
+index 97db44abc8..c6d26ca996 100644
+--- a/src/plugins/kdb/db2/libdb2/btree/bt_seq.c
++++ b/src/plugins/kdb/db2/libdb2/btree/bt_seq.c
+@@ -218,6 +218,10 @@ __bt_seqset(BTREE *t, EPG *ep, DBT *key, int flags)
+ 			pg = GETBINTERNAL(h, 0)->pgno;
+ 			BT_PUSH(t, h->pgno, 0);
+ 			mpool_put(t->bt_mp, h, 0);
++			if (BT_STACKFULL(t)) {
++				errno = E2BIG;
++				return (RET_ERROR);
++			}
+ 		}
+ 		ep->page = h;
+ 		ep->index = 0;
+@@ -242,6 +246,10 @@ __bt_seqset(BTREE *t, EPG *ep, DBT *key, int flags)
+ 			pg = GETBINTERNAL(h, NEXTINDEX(h) - 1)->pgno;
+ 			BT_PUSH(t, h->pgno, NEXTINDEX(h) - 1);
+ 			mpool_put(t->bt_mp, h, 0);
++			if (BT_STACKFULL(t)) {
++				errno = E2BIG;
++				return (RET_ERROR);
++			}
+ 		}
+ 
+ 		ep->page = h;
+diff --git a/src/plugins/kdb/db2/libdb2/btree/btree.h b/src/plugins/kdb/db2/libdb2/btree/btree.h
+index 91fd271bf6..87ce88d042 100644
+--- a/src/plugins/kdb/db2/libdb2/btree/btree.h
++++ b/src/plugins/kdb/db2/libdb2/btree/btree.h
+@@ -87,7 +87,9 @@ typedef struct _page {
+ #define	BTDATAOFF							\
+ 	(sizeof(db_pgno_t) + sizeof(db_pgno_t) + sizeof(db_pgno_t) +		\
+ 	    sizeof(u_int32_t) + sizeof(indx_t) + sizeof(indx_t))
+-#define	NEXTINDEX(p)	(((p)->lower - BTDATAOFF) / sizeof(indx_t))
++#define NEXTINDEX(p)						\
++	((p)->lower < BTDATAOFF ? 0 :				\
++	 (((p)->lower - BTDATAOFF) / sizeof(indx_t)))
+ 
+ /*
+  * For pages other than overflow pages, there is an array of offsets into the
+@@ -311,6 +313,7 @@ typedef struct _btree {
+ 
+ 	CURSOR	  bt_cursor;		/* cursor */
+ 
++#define	BT_STACKSIZE 50
+ #define	BT_PUSH(t, p, i) {						\
+ 	t->bt_sp->pgno = p; 						\
+ 	t->bt_sp->index = i; 						\
+@@ -318,7 +321,8 @@ typedef struct _btree {
+ }
+ #define	BT_POP(t)	(t->bt_sp == t->bt_stack ? NULL : --t->bt_sp)
+ #define	BT_CLR(t)	(t->bt_sp = t->bt_stack)
+-	EPGNO	  bt_stack[50];		/* stack of parent pages */
++#define	BT_STACKFULL(t)	(t->bt_sp == t->bt_stack + BT_STACKSIZE)
++	EPGNO	  bt_stack[BT_STACKSIZE]; /* stack of parent pages */
+ 	EPGNO	 *bt_sp;		/* current stack pointer */
+ 
+ 	DBT	  bt_rkey;		/* returned key */
+diff --git a/src/plugins/kdb/db2/libdb2/hash/hash.c b/src/plugins/kdb/db2/libdb2/hash/hash.c
+index 9528b62538..dcd5238311 100644
+--- a/src/plugins/kdb/db2/libdb2/hash/hash.c
++++ b/src/plugins/kdb/db2/libdb2/hash/hash.c
+@@ -150,7 +150,7 @@ __kdb2_hash_open(const char *file, int flags, int mode, const HASHINFO *info,
+ 		    sizeof(HASHHDR))
+ 			RETURN_ERROR(EFTYPE, error1);
+ 
+-		/* Verify file type, versions and hash function */
++		/* Verify file type, versions, hash function, block size */
+ 		if (hashp->hdr.magic != HASHMAGIC)
+ 			RETURN_ERROR(EFTYPE, error1);
+ #define	OLDHASHVERSION	1
+@@ -160,12 +160,18 @@ __kdb2_hash_open(const char *file, int flags, int mode, const HASHINFO *info,
+ 		if (hashp->hash(CHARKEY, sizeof(CHARKEY))
+ 		    != hashp->hdr.h_charkey)
+ 			RETURN_ERROR(EFTYPE, error1);
++		if (hashp->hdr.bsize == 0)
++			RETURN_ERROR(EFTYPE, error1);
+ 		/*
+ 		 * Figure out how many segments we need.  Max_Bucket is the
+ 		 * maximum bucket number, so the number of buckets is
+ 		 * max_bucket + 1.
+ 		 */
+ 
++		if (hashp->hdr.ovfl_point < 0 ||
++		    hashp->hdr.ovfl_point >= NCACHED)
++			RETURN_ERROR(EFTYPE, error1);
++
+ 		/* Read in bitmaps */
+ 		bpages = (hashp->hdr.spares[hashp->hdr.ovfl_point] +
+ 		    (hashp->hdr.bsize << BYTE_SHIFT) - 1) >>
+diff --git a/src/plugins/kdb/db2/libdb2/hash/hash_bigkey.c b/src/plugins/kdb/db2/libdb2/hash/hash_bigkey.c
+index 6befb7a57e..30b2ca9470 100644
+--- a/src/plugins/kdb/db2/libdb2/hash/hash_bigkey.c
++++ b/src/plugins/kdb/db2/libdb2/hash/hash_bigkey.c
+@@ -69,8 +69,9 @@ static char sccsid[] = "@(#)hash_bigkey.c	8.5 (Berkeley) 11/2/95";
+ #include "page.h"
+ #include "extern.h"
+ 
+-static int32_t collect_key __P((HTAB *, PAGE16 *, int32_t, db_pgno_t *));
+-static int32_t collect_data __P((HTAB *, PAGE16 *, int32_t));
++static int32_t collect_key __P((HTAB *, PAGE16 *, int32_t, db_pgno_t *,
++				u_int32_t));
++static int32_t collect_data __P((HTAB *, PAGE16 *, int32_t, u_int32_t));
+ 
+ /*
+  * Big_insert
+@@ -260,7 +261,7 @@ __big_keydata(HTAB *hashp, PAGE16 *pagep, DBT *key, DBT *val, int32_t ndx)
+ 	    __get_page(hashp, OADDR_TO_PAGE(DATA_OFF(pagep, ndx)), A_RAW);
+ 	if (!key_pagep)
+ 		return (-1);
+-	key->size = collect_key(hashp, key_pagep, 0, &last_page);
++	key->size = collect_key(hashp, key_pagep, 0, &last_page, 0);
+ 	key->data = hashp->bigkey_buf;
+ 	__put_page(hashp, key_pagep, A_RAW, 0);
+ 
+@@ -292,7 +293,7 @@ __get_bigkey(hashp, pagep, ndx, key)
+ 	    __get_page(hashp, OADDR_TO_PAGE(DATA_OFF(pagep, ndx)), A_RAW);
+ 	if (!key_pagep)
+ 		return (-1);
+-	key->size = collect_key(hashp, key_pagep, 0, NULL);
++	key->size = collect_key(hashp, key_pagep, 0, NULL, 0);
+ 	key->data = hashp->bigkey_buf;
+ 
+ 	__put_page(hashp, key_pagep, A_RAW, 0);
+@@ -331,7 +332,7 @@ __big_return(HTAB *hashp, ITEM_INFO *item_info, DBT *val,
+ 			return (-1);
+ 	}
+ 
+-	val->size = collect_data(hashp, pagep, 0);
++	val->size = collect_data(hashp, pagep, 0, 0);
+ 	if (val->size < 1)
+ 		return (-1);
+ 	val->data = (void *)hashp->bigdata_buf;
+@@ -352,7 +353,8 @@ __big_return(HTAB *hashp, ITEM_INFO *item_info, DBT *val,
+  * Return total length of data; -1 if error.
+  */
+ static int32_t
+-collect_key(HTAB *hashp, PAGE16 *pagep, int32_t len, db_pgno_t *last_page)
++collect_key(HTAB *hashp, PAGE16 *pagep, int32_t len, db_pgno_t *last_page,
++	    u_int32_t depth)
+ {
+ 	PAGE16 *next_pagep;
+ 	int32_t totlen, retval;
+@@ -361,6 +363,9 @@ collect_key(HTAB *hashp, PAGE16 *pagep, int32_t len, db_pgno_t *last_page)
+ 	db_pgno_t save_addr;
+ #endif
+ 
++	if (depth > hashp->hdr.max_bucket)
++		return (-1);
++
+ 	/* If this is the last page with key. */
+ 	if (BIGDATALEN(pagep)) {
+ 		totlen = len + BIGKEYLEN(pagep);
+@@ -395,7 +400,7 @@ collect_key(HTAB *hashp, PAGE16 *pagep, int32_t len, db_pgno_t *last_page)
+ #ifdef DEBUG
+ 	save_addr = ADDR(pagep);
+ #endif
+-	retval = collect_key(hashp, next_pagep, totlen, last_page);
++	retval = collect_key(hashp, next_pagep, totlen, last_page, depth + 1);
+ 
+ #ifdef DEBUG
+ 	assert(save_addr == ADDR(pagep));
+@@ -416,7 +421,7 @@ collect_key(HTAB *hashp, PAGE16 *pagep, int32_t len, db_pgno_t *last_page)
+  * Return total length of data; -1 if error.
+  */
+ static int32_t
+-collect_data(HTAB *hashp, PAGE16 *pagep, int32_t len)
++collect_data(HTAB *hashp, PAGE16 *pagep, int32_t len, u_int32_t depth)
+ {
+ 	PAGE16 *next_pagep;
+ 	int32_t totlen, retval;
+@@ -448,7 +453,7 @@ collect_data(HTAB *hashp, PAGE16 *pagep, int32_t len)
+ #ifdef DEBUG
+ 	save_addr = ADDR(pagep);
+ #endif
+-	retval = collect_data(hashp, next_pagep, totlen);
++	retval = collect_data(hashp, next_pagep, totlen, depth + 1);
+ #ifdef DEBUG
+ 	assert(save_addr == ADDR(pagep));
+ #endif
+diff --git a/src/plugins/kdb/db2/libdb2/hash/hash_page.c b/src/plugins/kdb/db2/libdb2/hash/hash_page.c
+index dba29e0cb5..c8b3f95b01 100644
+--- a/src/plugins/kdb/db2/libdb2/hash/hash_page.c
++++ b/src/plugins/kdb/db2/libdb2/hash/hash_page.c
+@@ -803,6 +803,7 @@ __pgin_routine(void *pg_cookie, db_pgno_t pgno, void *page)
+ 	HTAB *hashp;
+ 	PAGE16 *pagep;
+ 	int32_t max, i;
++	u_int16_t num_ent; /* byte-swapped NUM_ENT, used to validate before swap */
+ 
+ 	pagep = (PAGE16 *)page;
+ 	hashp = (HTAB *)pg_cookie;
+@@ -824,6 +825,18 @@ __pgin_routine(void *pg_cookie, db_pgno_t pgno, void *page)
+ 		return;
+ 	}
+ 
++	if (!is_bitmap_pgno(hashp, pgno)) {
++		if (hashp->hdr.lorder == DB_BYTE_ORDER)
++			num_ent = NUM_ENT(pagep);
++		else
++			P_16_COPY(NUM_ENT(pagep), num_ent);
++		if (num_ent >
++		    (hashp->hdr.bsize - PAGE_OVERHEAD) / PAIR_OVERHEAD) {
++			page_init(hashp, pagep, pgno, HASH_PAGE);
++			return;
++		}
++	}
++
+ 	if (hashp->hdr.lorder == DB_BYTE_ORDER)
+ 		return;
+ 	if (is_bitmap_pgno(hashp, pgno)) {
+-- 
+2.53.0
+

@@ -1,0 +1,38 @@
+From c842c6e6f4bab4dc0ae4673bc302c51f87c73564 Mon Sep 17 00:00:00 2001
+From: Andrew Donnellan <andrew@donnellan.id.au>
+Date: Wed, 7 Oct 2026 16:59:23 +1100
+Subject: [PATCH 58/90] Correctly abort parse on invalid JSON array
+
+In parse_value(), don't ignore the error result from parse_array().
+
+(This bug was found as part of an LLM-assisted automated testing and
+fuzzing project, using Claude Opus 5.5, Claude Haiku 5.5 and GPT-5.6 Sol
+Daybreak Blue.)
+
+[ghudson@mit.edu: shortened commit message]
+
+ticket: 9253 (new)
+tags: pullup
+target_version: 1.22-next
+
+(cherry picked from commit 27fccac69d0e81f7441e01f3d6446541b26a622a)
+---
+ src/util/support/json.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/src/util/support/json.c b/src/util/support/json.c
+index ac2e5be0b7..efd6a2d13b 100644
+--- a/src/util/support/json.c
++++ b/src/util/support/json.c
+@@ -1036,6 +1036,8 @@ parse_value(struct decode_ctx *ctx, k5_json_value *val_out)
+         if (ctx->depth-- == 1)
+             return EINVAL;
+         ret = parse_array(ctx, &array);
++        if (ret)
++            return ret;
+         ctx->depth++;
+         *val_out = array;
+     } else if (is_digit(*ctx->p) || *ctx->p == '-') {
+-- 
+2.53.0
+

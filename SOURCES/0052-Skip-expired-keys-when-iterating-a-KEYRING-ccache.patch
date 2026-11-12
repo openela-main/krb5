@@ -1,0 +1,46 @@
+From 0ddb1349cedf1387fd61c7085a4e91988acf8bcc Mon Sep 17 00:00:00 2001
+From: Greg Hudson <ghudson@mit.edu>
+Date: Mon, 12 Oct 2026 02:50:57 -0400
+Subject: [PATCH 52/89] Skip expired keys when iterating a KEYRING ccache
+
+In krcc_next_cred(), if keyctl_read_alloc() fails with EKEYEXPIRED,
+skip it and move on to the next key in the keyring.  This can happen
+if a credential in the cache expires before the whole cache expires,
+because for a period of time after a key expires, the key still exists
+in the keyring but cannot be accessed.  Reported by Ao Shen.
+
+ticket: 9254 (new)
+tags: pullup
+target_version: 1.22-next
+
+(cherry picked from commit 2001f37638ae80da640a9c2e959ac666cdfa2ad7)
+---
+ src/lib/krb5/ccache/cc_keyring.c | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
+
+diff --git a/src/lib/krb5/ccache/cc_keyring.c b/src/lib/krb5/ccache/cc_keyring.c
+index ab3cda6fef..2e26b06ddc 100644
+--- a/src/lib/krb5/ccache/cc_keyring.c
++++ b/src/lib/krb5/ccache/cc_keyring.c
+@@ -1053,14 +1053,15 @@ krcc_next_cred(krb5_context context, krb5_ccache id, krb5_cc_cursor *cursor,
+             ret = k5_unmarshal_cred(payload, psize, 4, creds);
+             free(payload);
+             return ret;
+-        } else if (errno != ENOKEY && errno != EACCES) {
++        } else if (errno != ENOKEY && errno != EACCES &&
++                   errno != EKEYEXPIRED) {
+             DEBUG_PRINT(("Error reading key %d: %s\n",
+                          krcursor->keys[krcursor->currkey], strerror(errno)));
+             return KRB5_FCC_NOFILE;
+         }
+ 
+-        /* The current key was unlinked, probably by a remove_cred call; move
+-         * on to the next one. */
++        /* The current key was unlinked, probably by a remove_cred call, or has
++         * expired; move on to the next one. */
+         krcursor->currkey++;
+     }
+ 
+-- 
+2.53.0
+

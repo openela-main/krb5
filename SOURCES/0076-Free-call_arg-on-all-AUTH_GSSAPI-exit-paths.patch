@@ -1,0 +1,82 @@
+From 4a06a16fb95cd9d3c5c2de65c112e035cd12aee9 Mon Sep 17 00:00:00 2001
+From: Julien Rische <jrische@redhat.com>
+Date: Wed, 9 Sep 2026 15:30:01 +0200
+Subject: [PATCH 76/89] Free call_arg on all AUTH_GSSAPI exit paths
+
+In gssrpc__svcauth_gssapi(), ensure that call_arg is released along
+all exit paths by freeing it in the error handler.
+
+CVE-2026-112321:
+
+The AUTH_GSSAPI handler in lib/rpc/svc_auth_gssapi.c in MIT Kerberos 5
+(aka krb5) does not free decoded arguments on certain error paths,
+which allows remote attackers to cause a denial of service (memory
+exhaustion in kadmind) via crafted AUTH_GSSAPI_INIT requests that
+trigger authentication failures.
+
+ticket: 9246 (new)
+tags: pullup
+target_version: 1.22-next
+
+(cherry picked from commit 3585483dcf44409b09b9d9ab777c54de6273619d)
+---
+ src/lib/rpc/svc_auth_gssapi.c | 9 ++++-----
+ 1 file changed, 4 insertions(+), 5 deletions(-)
+
+diff --git a/src/lib/rpc/svc_auth_gssapi.c b/src/lib/rpc/svc_auth_gssapi.c
+index 02735b5119..47f3242b59 100644
+--- a/src/lib/rpc/svc_auth_gssapi.c
++++ b/src/lib/rpc/svc_auth_gssapi.c
+@@ -190,6 +190,7 @@ enum auth_stat gssrpc__svcauth_gssapi(
+      /* use AUTH_NONE until there is a client_handle */
+      rqst->rq_xprt->xp_auth = &svc_auth_none;
+ 
++     memset(&call_arg, 0, sizeof(call_arg));
+      memset(&call_res, 0, sizeof(call_res));
+      creds.client_handle.length = 0;
+      creds.client_handle.value = NULL;
+@@ -314,7 +315,6 @@ enum auth_stat gssrpc__svcauth_gssapi(
+ 	  }
+ 
+ 	  /* call is for us, deserialize arguments */
+-	  memset(&call_arg, 0, sizeof(call_arg));
+ 	  if (! svc_getargs(rqst->rq_xprt, (xdrproc_t)xdr_authgssapi_init_arg,
+ 			    &call_arg)) {
+ 	       PRINTF(("svcauth_gssapi: cannot decode args\n"));
+@@ -454,8 +454,9 @@ enum auth_stat gssrpc__svcauth_gssapi(
+ 	  gssstat = call_res.gss_major;
+ 	  minor_stat = call_res.gss_minor;
+ 
+-	  /* done with call args */
++	  /* Done with call_arg (it may be reused for AUTH_GSSAPI_MSG). */
+ 	  xdr_free((xdrproc_t)xdr_authgssapi_init_arg, &call_arg);
++	  memset(&call_arg, 0, sizeof(call_arg));
+ 
+ 	  PRINTF(("svcauth_gssapi: accept_sec_context returned %#x %#x\n",
+ 		  call_res.gss_major, call_res.gss_minor));
+@@ -591,14 +592,11 @@ enum auth_stat gssrpc__svcauth_gssapi(
+ 	       switch (rqst->rq_proc) {
+ 	       case AUTH_GSSAPI_MSG:
+ 		    PRINTF(("svcauth_gssapi: GSSAPI_MSG, getting args\n"));
+-		    memset(&call_arg, 0, sizeof(call_arg));
+ 		    if (! svc_getargs(rqst->rq_xprt,
+ 				      (xdrproc_t)xdr_authgssapi_init_arg,
+ 				      &call_arg)) {
+ 			 PRINTF(("svcauth_gssapi: cannot decode args\n"));
+ 			 LOG_MISCERR("protocol error in call arguments");
+-			 xdr_free((xdrproc_t)xdr_authgssapi_init_arg,
+-				  &call_arg);
+ 			 ret = AUTH_BADCRED;
+ 			 goto error;
+ 		    }
+@@ -659,6 +657,7 @@ enum auth_stat gssrpc__svcauth_gssapi(
+      return AUTH_OK;
+ 
+ error:
++     xdr_free((xdrproc_t)xdr_authgssapi_init_arg, &call_arg);
+      if (creds.client_handle.length != 0) {
+ 	  PRINTF(("svcauth_gssapi: freeing client_handle len %d\n",
+ 		  (int) creds.client_handle.length));
+-- 
+2.53.0
+

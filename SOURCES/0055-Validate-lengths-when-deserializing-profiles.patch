@@ -1,0 +1,46 @@
+From 4c44ca0feb56a78b3b87cd98c812a6f621bffd4d Mon Sep 17 00:00:00 2001
+From: Bogdan Boguslavskij <bogdanb@altlinux.org>
+Date: Mon, 31 Aug 2026 18:23:28 +0300
+Subject: [PATCH 55/89] Validate lengths when deserializing profiles
+
+Add bounds checks to profile_ser_internalize(), in a similar fashion
+to commit 63ae6a8d99ce89258d732f7561233f60df533fa9 for other
+deserialization functions.
+
+[ghudson@mit.edu: added a bounds check for fcount; rewrote commit
+message]
+
+ticket: 9248 (new)
+tags: pullup
+target_version: 1.22-next
+
+(cherry picked from commit 5281e51e2421d9379f8f2ac654e401d305fac6e7)
+---
+ src/util/profile/prof_init.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/src/util/profile/prof_init.c b/src/util/profile/prof_init.c
+index 077c852e49..e9b01ac34f 100644
+--- a/src/util/profile/prof_init.c
++++ b/src/util/profile/prof_init.c
+@@ -624,6 +624,8 @@ errcode_t profile_ser_internalize(const char *unused, profile_t *profilep,
+     (void) unpack_int32(&fcount, &bp, &remain);
+     retval = ENOMEM;
+ 
++    if (fcount < 0 || (size_t)fcount > remain)
++        goto cleanup;
+     flist = (profile_filespec_t *) malloc(sizeof(profile_filespec_t) * (size_t) (fcount + 1));
+     if (!flist)
+         goto cleanup;
+@@ -631,6 +633,8 @@ errcode_t profile_ser_internalize(const char *unused, profile_t *profilep,
+     memset(flist, 0, sizeof(char *) * (size_t) (fcount+1));
+     for (i=0; i<fcount; i++) {
+         if (!unpack_int32(&tmp, &bp, &remain)) {
++            if (tmp < 0 || (size_t)tmp > remain)
++                goto cleanup;
+             flist[i] = (char *) malloc((size_t) (tmp+1));
+             if (!flist[i])
+                 goto cleanup;
+-- 
+2.53.0
+

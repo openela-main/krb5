@@ -1,0 +1,62 @@
+From a769a3c4650122e8841fa49741d3ecfcd770dcb8 Mon Sep 17 00:00:00 2001
+From: Tigran Sogomonian <tsogomonian@astralinux.ru>
+Date: Thu, 15 Oct 2026 12:47:53 +0300
+Subject: [PATCH 57/89] Fix memory leak in mpool_get() error paths
+
+If mpool_get() fails after obtaining a bucket from mpool_bkt() (offset
+overflow, lseek failure, or partial read), the bucket is not on any
+queue and is leaked.  Free it and decrement curcache on these paths.
+
+[ghudson@mit.edu: added cautionary comment to err label]
+
+ticket: 9273 (new)
+tags: pullup
+target_version: 1.22-next
+
+(cherry picked from commit 8f4c88a8b1bdb007f3d84f1280e7edf89a575ca4)
+---
+ src/plugins/kdb/db2/libdb2/mpool/mpool.c | 13 ++++++++++---
+ 1 file changed, 10 insertions(+), 3 deletions(-)
+
+diff --git a/src/plugins/kdb/db2/libdb2/mpool/mpool.c b/src/plugins/kdb/db2/libdb2/mpool/mpool.c
+index 028fb180ca..0182b8cf90 100644
+--- a/src/plugins/kdb/db2/libdb2/mpool/mpool.c
++++ b/src/plugins/kdb/db2/libdb2/mpool/mpool.c
+@@ -218,17 +218,17 @@ mpool_get(MPOOL *mp, db_pgno_t pgno, u_int flags)
+ 	    /* Run past the end of the file, or at least the part we
+ 	       can address without large-file support?  */
+ 	    errno = E2BIG;
+-	    return NULL;
++	    goto err;
+ 	}
+ 	if (lseek(mp->fd, off, SEEK_SET) != off)
+-		return (NULL);
++		goto err;
+ 
+ 	if ((nr = read(mp->fd, bp->page, mp->pagesize)) !=
+ 	    (ssize_t)mp->pagesize) {
+ 		if (nr > 0) {
+ 			/* A partial read is definitely bad. */
+ 			errno = EINVAL;
+-			return (NULL);
++			goto err;
+ 		} else {
+ 			/*
+ 			 * A zero-length reads, means you need to create a
+@@ -257,6 +257,13 @@ mpool_get(MPOOL *mp, db_pgno_t pgno, u_int flags)
+ 		(mp->pgin)(mp->pgcookie, bp->pgno, bp->page);
+ 
+ 	return (bp->page);
++
++err:
++	/* Only use this label after the mpool_bkt() call.  mpool_bkt()
++	 * returned a fresh or unlinked page; drop it. */
++	free(bp);
++	mp->curcache--;
++	return (NULL);
+ }
+ 
+ /*
+-- 
+2.53.0
+

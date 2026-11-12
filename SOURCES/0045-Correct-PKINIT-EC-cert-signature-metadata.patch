@@ -1,7 +1,7 @@
-From 7aabd53ecbf1164aad8b5c629408001f30a2b2f4 Mon Sep 17 00:00:00 2001
+From 0145bf2a881aac189c8fe655bc6c648528f009f2 Mon Sep 17 00:00:00 2001
 From: Greg Hudson <ghudson@mit.edu>
 Date: Fri, 9 Feb 2024 17:57:40 -0500
-Subject: [PATCH] Correct PKINIT EC cert signature metadata
+Subject: [PATCH 45/89] Correct PKINIT EC cert signature metadata
 
 When generating CMS SignedData in PKINIT, check the certificate's
 public key type and set the signatureAlgorithm field appropriately.

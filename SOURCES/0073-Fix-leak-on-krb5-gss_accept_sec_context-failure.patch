@@ -1,0 +1,39 @@
+From ec07069cd7dd2051a54f3798cdb26122f6af6415 Mon Sep 17 00:00:00 2001
+From: Greg Hudson <ghudson@mit.edu>
+Date: Thu, 22 Oct 2026 19:31:01 -0400
+Subject: [PATCH 73/89] Fix leak on krb5 gss_accept_sec_context() failure
+
+In kg_accept_krb5(), properly release deleg_cred when cleaning up
+after a failure.  Reported by Moritz Theile.
+
+ticket: 9269 (new)
+tags: pullup
+target_version: 1.22-next
+
+(cherry picked from commit 33831d70b0a3aaa24b0914911878a2dae95eb5cd)
+---
+ src/lib/gssapi/krb5/accept_sec_context.c | 8 +-------
+ 1 file changed, 1 insertion(+), 7 deletions(-)
+
+diff --git a/src/lib/gssapi/krb5/accept_sec_context.c b/src/lib/gssapi/krb5/accept_sec_context.c
+index 215af42f30..e4f490df0c 100644
+--- a/src/lib/gssapi/krb5/accept_sec_context.c
++++ b/src/lib/gssapi/krb5/accept_sec_context.c
+@@ -1158,13 +1158,7 @@ fail:
+     if (ctx)
+         (void) krb5_gss_delete_sec_context(&tmp_minor_status,
+                                            (gss_ctx_id_t *) &ctx, NULL);
+-    if (deleg_cred) { /* free memory associated with the deleg credential */
+-        if (deleg_cred->ccache)
+-            (void)krb5_cc_close(context, deleg_cred->ccache);
+-        if (deleg_cred->name)
+-            kg_release_name(context, &deleg_cred->name);
+-        xfree(deleg_cred);
+-    }
++    (void) kg_release_cred(context, deleg_cred);
+     if (token.value)
+         xfree(token.value);
+     if (name) {
+-- 
+2.53.0
+

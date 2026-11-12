@@ -1,0 +1,75 @@
+From a30c808c366d6796262840ef19d725a1a8916005 Mon Sep 17 00:00:00 2001
+From: Greg Hudson <ghudson@mit.edu>
+Date: Fri, 18 Sep 2026 19:30:43 -0400
+Subject: [PATCH 68/89] Check type of otherName value in PKINIT SAN code
+
+In crypto_retrieve_X509_sans(), when we process a general name of type
+AnotherName, check the ASN.1 type of the value before retrieving the
+sequence or string pointer and length.  Otherwise the function may
+dereference a null or invalid pointer and crash.  Discovered by
+Alexandru-Ionut Jipa using Claude.
+
+ticket: 9239 (new)
+tags: pullup
+target_version: 1.22-next
+
+(cherry picked from commit 0e540e8d7cfe09a46b11e9fe2dd9382a0c0285f5)
+---
+ .../preauth/pkinit/pkinit_crypto_openssl.c    | 27 ++++++++++++++-----
+ 1 file changed, 20 insertions(+), 7 deletions(-)
+
+diff --git a/src/plugins/preauth/pkinit/pkinit_crypto_openssl.c b/src/plugins/preauth/pkinit/pkinit_crypto_openssl.c
+index 0c34d62cdc..3b48213337 100644
+--- a/src/plugins/preauth/pkinit/pkinit_crypto_openssl.c
++++ b/src/plugins/preauth/pkinit/pkinit_crypto_openssl.c
+@@ -2306,6 +2306,8 @@ crypto_retrieve_X509_sans(krb5_context context,
+     X509_EXTENSION *ext = NULL;
+     GENERAL_NAMES *ialt = NULL;
+     GENERAL_NAME *gen = NULL;
++    const ASN1_OBJECT *otype;
++    const ASN1_TYPE *ovalue;
+ 
+     if (princs_ret != NULL)
+         *princs_ret = NULL;
+@@ -2366,11 +2368,16 @@ crypto_retrieve_X509_sans(krb5_context context,
+         gen = sk_GENERAL_NAME_value(ialt, i);
+         switch (gen->type) {
+         case GEN_OTHERNAME:
+-            name.length = gen->d.otherName->value->value.sequence->length;
+-            name.data = (char *)gen->d.otherName->value->value.sequence->data;
+-            if (princs != NULL &&
+-                OBJ_cmp(plgctx->id_pkinit_san,
+-                        gen->d.otherName->type_id) == 0) {
++            otype = gen->d.otherName->type_id;
++            ovalue = gen->d.otherName->value;
++            if (princs != NULL && OBJ_cmp(plgctx->id_pkinit_san, otype) == 0) {
++                if (ovalue->type != V_ASN1_SEQUENCE) {
++                    pkiDebug("%s: id-pkinit-san name is not a sequence\n",
++                             __FUNCTION__);
++                    continue;
++                }
++                name.length = ovalue->value.sequence->length;
++                name.data = (char *)ovalue->value.sequence->data;
+ #ifdef DEBUG_ASN1
+                 print_buffer_bin((unsigned char *)name.data, name.length,
+                                  "/tmp/pkinit_san");
+@@ -2383,8 +2390,14 @@ crypto_retrieve_X509_sans(krb5_context context,
+                     p++;
+                 }
+             } else if (upns != NULL &&
+-                       OBJ_cmp(plgctx->id_ms_san_upn,
+-                               gen->d.otherName->type_id) == 0) {
++                       OBJ_cmp(plgctx->id_ms_san_upn, otype) == 0) {
++                if (ovalue->type != V_ASN1_UTF8STRING) {
++                    pkiDebug("%s: id-ms-san-upn name is not a UTF-8 string\n",
++                             __FUNCTION__);
++                    continue;
++                }
++                name.length = ovalue->value.utf8string->length;
++                name.data = (char *)ovalue->value.utf8string->data;
+                 /* Prevent abuse of embedded null characters. */
+                 if (memchr(name.data, '\0', name.length))
+                     break;
+-- 
+2.53.0
+

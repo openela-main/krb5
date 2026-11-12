@@ -1,0 +1,38 @@
+From c55c3419f47863aa71c3e7393eef88dc6e739715 Mon Sep 17 00:00:00 2001
+From: Tigran Sogomonian <tsogomonian@astralinux.ru>
+Date: Wed, 21 Oct 2026 20:46:10 +0300
+Subject: [PATCH 61/89] Fix minor ksu memory leak
+
+In fcmd_resolve(), free path in the cleanup handler.
+
+[ghudson@mit.edu: edited commit message]
+
+(cherry picked from commit 5f740bdd97d7950853cb04c955d86fda9aeba960)
+---
+ src/clients/ksu/authorization.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/src/clients/ksu/authorization.c b/src/clients/ksu/authorization.c
+index 1f2650c2ab..2365a05696 100644
+--- a/src/clients/ksu/authorization.c
++++ b/src/clients/ksu/authorization.c
+@@ -330,7 +330,7 @@ fcmd_resolve(char *fcmd, char ***out_fcmd, char **out_err)
+ {
+     char * err;
+     char ** tmp_fcmd = NULL;
+-    char * path_ptr, *path;
++    char * path_ptr, *path = NULL;
+     char * lp, * tc;
+     int i=0;
+     krb5_boolean ok = FALSE;
+@@ -398,6 +398,7 @@ fcmd_resolve(char *fcmd, char ***out_fcmd, char **out_err)
+     ok = TRUE;
+ 
+ cleanup:
++    free(path);
+     free_fcmd_list(tmp_fcmd);
+     return ok;
+ }
+-- 
+2.53.0
+

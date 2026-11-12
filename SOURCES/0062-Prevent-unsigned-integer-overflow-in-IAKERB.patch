@@ -1,0 +1,37 @@
+From 1af560aca9c756d5ea3f01544f4f0d8cc4902073 Mon Sep 17 00:00:00 2001
+From: Osvaldo Janeri Filho <janeri@gmail.com>
+Date: Fri, 30 Oct 2026 08:41:19 -0300
+Subject: [PATCH 62/89] Prevent unsigned integer overflow in IAKERB
+
+In iakerb_save_token(), check that token->length (size_t) won't
+overflow the accumulated conversation length ctx->conv.length
+(unsigned int).
+
+[ghudson@mit.edu: edited commit message]
+
+ticket: 9278 (new)
+tags: pullup
+target_version: 1.22-next
+
+(cherry picked from commit 32c1d65f56af1b6c150497a4f9d322a50c2a9f05)
+---
+ src/lib/gssapi/krb5/iakerb.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/src/lib/gssapi/krb5/iakerb.c b/src/lib/gssapi/krb5/iakerb.c
+index a0d298c49e..b3e9212be2 100644
+--- a/src/lib/gssapi/krb5/iakerb.c
++++ b/src/lib/gssapi/krb5/iakerb.c
+@@ -147,6 +147,9 @@ iakerb_save_token(iakerb_ctx_id_t ctx, const gss_buffer_t token)
+ {
+     char *p;
+ 
++    if (token->length > UINT_MAX - ctx->conv.length)
++        return ENOMEM;
++
+     p = realloc(ctx->conv.data, ctx->conv.length + token->length);
+     if (p == NULL)
+         return ENOMEM;
+-- 
+2.53.0
+

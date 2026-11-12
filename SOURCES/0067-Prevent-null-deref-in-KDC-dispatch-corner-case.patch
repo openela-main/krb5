@@ -1,0 +1,44 @@
+From e1b722bcb00cee73dbcfc1c48a9780b653eb7ad7 Mon Sep 17 00:00:00 2001
+From: Greg Hudson <ghudson@mit.edu>
+Date: Thu, 17 Sep 2026 11:07:52 -0400
+Subject: [PATCH 67/89] Prevent null deref in KDC dispatch corner case
+
+If a KDC request matches an entry in the lookaside cache, we transmit
+the reply without decoding the request, and therefore without looking
+up the applicable realm.  But if the cached reply is longer than
+kdc_max_dgram_reply_size, we need the applicable realm's TGS server
+principal to construct a KRB_ERR_RESPONSE_TOO_BIG KRB-ERROR message.
+Currently this results in a null derefernce.  This case is unlikely to
+happen with the default kdc_max_dgram_reply_size value of 65536, but
+may be triggerable by an unauthenticated attacker if the value is
+lowered.  Prevent a null dereference in this scenario by setting an
+initial guess at the realm before checking the lookaside cache.
+Reported by AWS Security.
+
+ticket: 9238 (new)
+tags: pullup
+target_version: 1.22-next
+
+(cherry picked from commit 774506e972dea98e0cd770109b0af89473ebe21d)
+---
+ src/kdc/dispatch.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/src/kdc/dispatch.c b/src/kdc/dispatch.c
+index 28def3be47..1caafde1e7 100644
+--- a/src/kdc/dispatch.c
++++ b/src/kdc/dispatch.c
+@@ -109,6 +109,10 @@ dispatch(void *cb, const krb5_fulladdr *local_addr,
+     state->is_tcp = is_tcp;
+     state->kdc_err_context = kdc_err_context;
+ 
++    /* Start with a guess at the applicable realm, in case we need one to
++     * produce an error message without having decoded the request. */
++    state->active_realm = handle->kdc_realmlist[0];
++
+     /* decode incoming packet, and dispatch */
+ 
+ #ifndef NOCACHE
+-- 
+2.53.0
+
